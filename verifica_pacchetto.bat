@@ -42,7 +42,7 @@ call :file "avvia.bat" 546
 call :file "avvia_simulazione.bat" 237
 call :file "diagnostica.bat" 1530
 call :file "README.md" 61738
-call :file "GUIDA_LABORATORIO.txt" 13569
+call :file "GUIDA_LABORATORIO.txt" 13585
 call :file "config.ini" ""
 call :file "dlive\__init__.py" 0
 call :file "dlive\acquisizione.py" 22314

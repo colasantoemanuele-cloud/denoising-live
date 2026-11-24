@@ -156,8 +156,8 @@ Chiudi il Blocco note.
 
 I file sono in `C:\denoising_live\dati_registrati`: `AAMMGG_NNN_raw.wcp`,
 `AAMMGG_NNN_filt.wcp` e `AAMMGG_NNN.json` (AAMMGG è la data del PC, NNN un numero: per
-esempio `081124_001_raw.wcp`). Se la data sembra vecchia è normale: l'orologio del PC è
-indietro.
+esempio `261124_001_raw.wcp`). Se la data nel nome non è quella di oggi, annotalo:
+l'orologio del PC è sbagliato.
 
 **B11. Aprire i file in WinWCP.** Apri WinWCP e, dal menu **File**, apri
 `C:\denoising_live\dati_registrati\AAMMGG_NNN_raw.wcp`, poi `AAMMGG_NNN_filt.wcp`.

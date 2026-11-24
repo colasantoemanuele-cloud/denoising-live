@@ -37,12 +37,12 @@ call :file "installa.bat" 12827
 call :file "disinstalla.bat" 2908
 call :file "crea_collegamenti.vbs" 1012
 call :file "main.py" 7788
-call :file "diagnostica_digidata.py" 23513
+call :file "diagnostica_digidata.py" 26241
 call :file "avvia.bat" 546
 call :file "avvia_simulazione.bat" 237
 call :file "diagnostica.bat" 1530
 call :file "README.md" 62148
-call :file "GUIDA_LABORATORIO.txt" 13585
+call :file "GUIDA_LABORATORIO.txt" 16865
 call :file "config.ini" ""
 call :file "dlive\__init__.py" 0
 call :file "dlive\acquisizione.py" 22314

@@ -15,7 +15,8 @@ report_diagnostica.txt (da mandare se qualcosa non va):
    6. dimensioni delle strutture ctypes
    7. DD132X_FindDevices: il Digidata e' visto?
    8. apertura, informazioni e calibrazione della scheda
-   9. lettura di qualche campione singolo dall'ingresso 2 (e da tutti gli ingressi)
+   9. lettura di qualche campione singolo dall'ingresso 2 e da tutti gli ingressi:
+      su quale ingresso c'e' il segnale e se coincide con config.ini
   10. acquisizione continua di 10 s a 1000 Hz: CSV + .wcp + statistiche
   11. analisi del rumore e prova del filtro predefinito
 
@@ -73,6 +74,52 @@ class Report(object):
     def chiudi(self):
         if self.f is not None:
             self.f.close()
+
+
+# Ingresso del segnale (passo 9).  Un ingresso scollegato resta entro pochi
+# conteggi da 0 (+-2 nei file di prova, docs/analisi_sorgenti.md); 20 conteggi
+# sono 6 mV all'ingresso del Digidata (fondo scala +-10 V = +-32768).
+SOGLIA_SEGNALE = 20
+LETTURE_PER_INGRESSO = 5
+
+
+def ingressi_con_segnale(letture, soglia=SOGLIA_SEGNALE):
+    """letture: {ingresso: [conteggi]} -> ingressi con segnale, dal piu' forte.
+    Un ingresso ha segnale se la mediana o l'ampiezza (max - min) delle letture
+    supera la soglia."""
+    forza = {}
+    for ch, v in letture.items():
+        if not v:
+            continue
+        s = sorted(v)
+        f = max(abs(s[len(s) // 2]), s[-1] - s[0])
+        if f > soglia:
+            forza[ch] = f
+    return sorted(forza, key=lambda c: (-forza[c], c))
+
+
+def riga_ingresso(trovati, ingresso_config, soglia=SOGLIA_SEGNALE):
+    """(esito, testo) per il riepilogo: True = OK, None = AVVISO."""
+    rimedio = ("aprire C:\\denoising_live\\config.ini con il Blocco note, scrivere canale_ingresso = %d, "
+               "salvare e rifare la diagnostica (GUIDA_LABORATORIO, B7b)")
+    if not trovati:
+        return None, ("nessun ingresso con segnale (tutti entro +-%d conteggi); config.ini usa AI%d: "
+                      "controllare il cavo dall'LPF-8 al Digidata e che ci sia un segnale"
+                      % (soglia, ingresso_config))
+    if trovati[0] == ingresso_config:
+        testo = "segnale trovato sull'ingresso AI%d; config.ini usa AI%d" % (trovati[0], ingresso_config)
+        if len(trovati) > 1:
+            testo += " (segnale anche su %s)" % ", ".join("AI%d" % c for c in trovati[1:])
+        return True, testo
+    if ingresso_config in trovati:
+        return True, ("segnale su piu' ingressi (%s), il piu' forte e' AI%d; config.ini usa AI%d, che ha "
+                      "segnale: lasciarlo cosi' se e' quello giusto, altrimenti " % (
+                          ", ".join("AI%d" % c for c in trovati), trovati[0], ingresso_config)
+                      + rimedio % trovati[0])
+    testo = "segnale trovato sull'ingresso AI%d; config.ini usa AI%d" % (trovati[0], ingresso_config)
+    if len(trovati) > 1:
+        testo += " (segnale anche su %s)" % ", ".join("AI%d" % c for c in trovati[1:])
+    return None, testo + ": " + rimedio % trovati[0]
 
 
 def md5(percorso):
@@ -346,10 +393,16 @@ def main(argv=None):
     try:
         vals = [dev.leggi_valore_singolo(canale) for _ in range(10)]
         rep.scrivi("AI%d: %s conteggi = %s mV" % (canale, vals, ["%.1f" % (v * conv) for v in vals]))
+        letture = {}
         for ch in range(16):
-            v = dev.leggi_valore_singolo(ch)
-            rep.scrivi("  AI%-2d = %6d conteggi = %8.1f mV" % (ch, v, v * conv))
+            v = [dev.leggi_valore_singolo(ch) for _ in range(LETTURE_PER_INGRESSO)]
+            letture[ch] = v
+            med = sorted(v)[len(v) // 2]
+            rep.scrivi("  AI%-2d = %6d conteggi = %8.1f mV   (min %d, max %d su %d letture)"
+                       % (ch, med, med * conv, min(v), max(v), len(v)))
         rep.esito(9, True, "lettura singola riuscita")
+        esito_ing, testo_ing = riga_ingresso(ingressi_con_segnale(letture), cfg["digidata.canale_ingresso"])
+        rep.esito(9, esito_ing, testo_ing)
     except Exception as ex:
         rep.esito(9, None, "lettura singola non riuscita (%s); si prova comunque l'acquisizione" % ex)
 

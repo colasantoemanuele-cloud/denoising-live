@@ -70,6 +70,21 @@ scaricati). Poi togli la chiavetta con "Rimozione sicura dell'hardware".
 
 ## B. In laboratorio
 
+**B0. Prima di tutto: WinWCP c'è e registra con il Digidata?** denoising_live usa la DLL
+Axon di WinWCP: senza WinWCP installato quella DLL non c'è e il programma non può parlare
+con il Digidata.
+
+* Cerca l'icona di **WinWCP** sul desktop o nel menu **Start → Programmi**.
+* Chiedi a chi usa il PC se con WinWCP si registra normalmente dal Digidata. Se vuoi
+  vederlo tu (dopo il passo B2, con il Digidata acceso): apri WinWCP, menu **Setup →
+  Laboratory Interface**, deve essere scelto *Axon Instruments (Digidata 132X)*; non
+  cambiare nulla, chiudi con **Cancel** e chiudi WinWCP.
+* **Se WinWCP non c'è** (o non registra con il Digidata): **fermati qui, prima di
+  installare**. Si può andare avanti solo con l'ok del professore a installare, dagli
+  installatori del laboratorio, prima AxoScope (porta WinASPI e il driver SCSI) e poi
+  WinWCP (guida di WinWCP, p. 21). Altrimenti passa alla parte D con una foto del menu
+  Start.
+
 **B1. Ok del professore.** Prima di toccare il PC chiedi l'ok e assicurati che non ci
 sia un esperimento o una registrazione in corso. denoising_live legge soltanto dal
 Digidata: non manda stimoli.
@@ -124,6 +139,30 @@ Digidata** del desktop. Dura circa 30 secondi, poi si apre il Blocco note con il
 
 Chiudi il Blocco note.
 
+**B7b. Su quale ingresso arriva il segnale.** La finestra del programma non permette di
+scegliere l'ingresso: lo decide la riga `canale_ingresso` di `C:\denoising_live\config.ini`
+(di solito 2). Nel report, sotto `PASSO 9`, ci sono i valori dei 16 ingressi (`AI0` ...
+`AI15`) e poi una riga che inizia con `>>> OK:` o `>>> AVVISO:`, per esempio
+`segnale trovato sull'ingresso AI4; config.ini usa AI2`. La stessa frase compare nel
+`RIEPILOGO` come `passo 9`.
+
+* **Se i due numeri sono uguali** (per esempio `sull'ingresso AI2; config.ini usa AI2`):
+  va bene, vai a B8.
+* **Se sono diversi**, metti in config.ini il numero dell'ingresso trovato:
+  1. chiudi denoising_live, se è aperto;
+  2. apri la cartella `C:\denoising_live` e fai doppio clic su `config.ini` (si apre
+     con il Blocco note; se chiede con cosa aprirlo, scegli **Blocco note**);
+  3. cerca la riga `canale_ingresso = 2` (menu **Modifica → Trova**, scrivi
+     `canale_ingresso`) e cambia solo il numero, per esempio `canale_ingresso = 4`;
+  4. menu **File → Salva** (non "Salva con nome", non cambiare la codifica) e chiudi il
+     Blocco note;
+  5. rifai la diagnostica (B7): ora la riga deve dire `config.ini usa AI4`.
+* **Se dice `nessun ingresso con segnale`**: controlla che il cavo dall'LPF-8 al
+  Digidata sia collegato e che in quel momento ci sia un segnale; fai una foto dei
+  collegamenti e rifai la diagnostica.
+* **Se dice `segnale su piu' ingressi`** e config.ini usa uno di quelli: lascia
+  config.ini com'è e annotalo.
+
 **B8. Avviare il programma.** Doppio clic sull'icona **denoising_live (Digidata)**.
 
 * All'avvio può chiedere "Impostazioni di WinWCP": rispondi **Sì** (usa canale e
@@ -137,8 +176,10 @@ Chiudi il Blocco note.
   mV; nella barra in basso leggi `anteprima` (in verde) e `Persi: 0`.
 * **Controlla che il grafico mostri il segnale**: valori in mV dello stesso ordine di
   quelli che si vedono di solito in WinWCP, che cambiano quando il segnale cambia. Se la
-  traccia è piatta a 0 o è solo rumore, segnalo e fai una foto (potrebbe essere il
-  canale sbagliato).
+  traccia è piatta a 0 o è solo rumore, potrebbe essere l'ingresso sbagliato: fai una
+  foto, premi **Ferma**, chiudi il programma, guarda la riga del passo 9 del report
+  (B7b) e, se l'ingresso è diverso da quello di config.ini, cambialo come spiegato in
+  B7b, rifai la diagnostica e riapri il programma.
 * (facoltativo) Se sai a quanto è impostato il filtro LPF-8, scrivi quel valore nella
   casella **Taglio LPF-8 (Hz)** e premi **Applica** accanto.
 * Se il grafico è lento o a scatti: nel riquadro **Grafico**, **Aggiornamento (Hz)**,
@@ -182,6 +223,8 @@ Chiudi WinWCP. Fine della prova.
 | `manca AxDD132x.dll` o `manca Axoutils32.dll` nella cartella di WinWCP; nella diagnostica passo 5 `nessuna AxDD132x.dll trovata` o `nessuna copia caricabile`; all'avvio la finestra "Driver Digidata" | `installa.bat`, diagnostica, programma | la DLL Axon si prende da WinWCP: senza, il programma non parla con il Digidata. Fotografa il contenuto della cartella di WinWCP e passa alla parte D. Non scaricare DLL da internet |
 | `WinASPI non installato` (installazione) o passo 3 `WinASPI non funziona` (diagnostica) | `installa.bat`, diagnostica | WinASPI e il driver SCSI si installano con **AxoScope** (guida di WinWCP, p. 21): solo con l'ok del professore e se l'installatore di AxoScope è disponibile in laboratorio; poi riavviare il PC. Altrimenti fermarsi e passare alla parte D |
 | passo 7 `Digidata non trovato` (diagnostica) oppure "Nessun Digidata trovato" all'anteprima | diagnostica, programma | spegnere il PC, controllare che il Digidata sia acceso e il cavo collegato, riaccendere il PC (Digidata sempre acceso **prima**), rifare la diagnostica |
+| `segnale trovato sull'ingresso AI4; config.ini usa AI2` (numeri diversi), oppure traccia piatta o solo rumore nell'anteprima | diagnostica (passo 9), programma | cambiare `canale_ingresso` in `C:\denoising_live\config.ini` con il Blocco note (B7b) e rifare la diagnostica |
+| WinWCP non installato (nessuna icona né voce nel menu Start) | prima di installare (B0) | fermarsi: senza WinWCP non c'è la DLL Axon. Solo con l'ok del professore: installare AxoScope e poi WinWCP dagli installatori del laboratorio |
 | `WinWCP e' aperto` o la finestra "Scheda occupata" / "La scheda Digidata e' gia' in uso da: winwcp.exe" | diagnostica, programma | chiudere WinWCP (e AxoScope/Clampex) e riprovare |
 | `Persi: N` in rosso o la banda rossa "Campioni persi" (overrun: il PC non ha letto in tempo i dati della scheda) | programma | non chiudere: annotare il numero, mettere **Aggiornamento (Hz)** a **2**, chiudere gli altri programmi aperti; se continua a salire, fare una foto e mandare la cartella `log` |
 | grafico lento, a scatti, finestra che risponde in ritardo | programma | **Aggiornamento (Hz)** → **2** |
@@ -201,7 +244,8 @@ Copia sulla chiavetta, in una cartella nuova (per esempio `risultati_prova`):
    `AAMMGG_NNN_raw.wcp`, `AAMMGG_NNN_filt.wcp`, `AAMMGG_NNN.json`
 4. i file creati dalla diagnostica, in `C:\denoising_live`:
    `diagnostica_AAMMGG_HHMMSS.wcp` e `diagnostica_AAMMGG_HHMMSS.csv`
-5. `C:\denoising_live\rilevamento_pc.txt` e, dalla cartella del progetto,
+5. `C:\denoising_live\rilevamento_pc.txt`, `C:\denoising_live\config.ini` (soprattutto se
+   l'hai cambiato in B7b) e, dalla cartella del progetto,
    `installa_log.txt` (e `python_msi_log.txt`, se c'è)
 6. le **foto**: la finestra di denoising_live durante la registrazione, i file aperti in
    WinWCP e ogni messaggio di errore

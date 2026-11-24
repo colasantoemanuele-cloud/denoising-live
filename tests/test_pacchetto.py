@@ -228,6 +228,8 @@ def test_guida_coincide_con_script_e_finestra():
         "nessuna AxDD132x.dll trovata", "nessuna copia caricabile", "Digidata non trovato",
         "installa_log.txt", "python_msi_log.txt", "rilevamento_pc.txt", "report_diagnostica.txt",
         "dati_registrati", "Python puro", "M:", "_raw", "_filt", ".json",
+        "segnale trovato sull'ingresso AI", "config.ini usa AI", "nessun ingresso con segnale",
+        "segnale su piu' ingressi", "canale_ingresso", "PASSO %s",
     ]
     for c in citati:
         assert c in sorgenti or c in _leggi("config.ini").decode("utf-8"), c
@@ -239,6 +241,12 @@ def test_guida_coincide_con_script_e_finestra():
               "denoising_live (Digidata)", "Diagnostica Digidata", "verifica_pacchetto.bat", "installa.bat"):
         assert c in guida, c
     assert "non è mai stato provato con il Digidata vero" in guida
+    # ingresso del segnale (B7b) e controllo di WinWCP prima di installare (B0)
+    for c in ("segnale trovato sull'ingresso AI4; config.ini usa AI2", "canale_ingresso = 4",
+              "C:\\denoising_live\\config.ini", "**File → Salva**", "**B0.", "**B7b.",
+              "nessun ingresso con segnale", "segnale su piu' ingressi"):
+        assert c in guida, c
+    assert guida.index("**B0.") < guida.index("**B1.") and guida.index("**B7b.") < guida.index("**B8.")
 
 
 def test_readme_rimanda_alla_guida():

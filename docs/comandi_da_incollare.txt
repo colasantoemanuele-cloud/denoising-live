@@ -1,0 +1,37 @@
+echo off
+rem ================================================================
+rem  RACCOLTA INFORMAZIONI PC LABORATORIO - versione minima (fase 5)
+rem  Non modifica nulla sul PC: legge e copia alcuni file nella
+rem  cartella info_pc_lab sul Desktop. Nessuna domanda.
+rem  Incollare TUTTO nel Prompt dei comandi (clic destro sulla barra
+rem  del titolo - Modifica - Incolla). Dura pochi minuti.
+rem  Non lanciarlo mentre WinWCP sta registrando.
+rem ================================================================
+set D=%USERPROFILE%\Desktop\info_pc_lab
+mkdir "%D%" 2>nul
+mkdir "%D%\wcp_recenti" 2>nul
+set F=%D%\info_pc_lab.txt
+> "%F%" echo INFO PC LAB v5 - %DATE% %TIME% - %COMPUTERNAME%
+echo 1/4 sistema...
+>>"%F%" echo ===== 1 SISTEMA
+ver >>"%F%" 2>&1
+reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v CSDVersion >>"%F%" 2>&1
+>>"%F%" echo PROCESSOR_ARCHITECTURE=%PROCESSOR_ARCHITECTURE% PROCESSOR_ARCHITEW6432=%PROCESSOR_ARCHITEW6432%
+fsutil fsinfo drives >nul 2>&1 && (>>"%F%" echo AMMINISTRATORE=SI) || (>>"%F%" echo AMMINISTRATORE=NO)
+dir C:\ 2>&1 | find /i "byte" >>"%F%"
+echo 2/4 elenco dei file .wcp sul disco C: (qualche minuto)...
+>>"%F%" echo ===== 2 FILE WCP SUL DISCO C: (data;byte;percorso)
+for /f "delims=" %a in ('dir /s /b /a-d C:\*.wcp 2^>nul') do >>"%F%" echo %~ta;%~za;%a
+echo 3/4 impostazioni e log di WinWCP...
+>>"%F%" echo ===== 3 IMPOSTAZIONI DI WINWCP
+for %r in ("%ALLUSERSPROFILE%" "%ProgramFiles%" "C:\WinWCP" "C:\WinWCPXE") do for /f "delims=" %a in ('dir /s /b /a-d "%~r\winwcp.ini" "%~r\lab interface settings.xml" "%~r\amplifier settings.xml" 2^>nul') do (>>"%F%" echo ----- FILE %a ; %~za byte ; %~ta & type "%a" >>"%F%" & >>"%F%" echo.)
+>>"%F%" echo ===== 4 LOG DI WINWCP (protocolli di stimolazione e registrazioni)
+for %r in ("%ALLUSERSPROFILE%" "%ProgramFiles%" "C:\WinWCP" "C:\WinWCPXE") do for /f "delims=" %i in ('dir /s /b /a-d "%~r\winwcp.ini" 2^>nul') do findstr /i /c:"Stimulus Protocol" /c:"Recording Started" /c:"Stopped (" /c:"New data file" "%~dpi*.log" >>"%F%" 2>nul
+echo 4/4 copia dei file .wcp usati di recente da WinWCP...
+for %r in ("%ALLUSERSPROFILE%" "%ProgramFiles%" "C:\WinWCP" "C:\WinWCPXE") do for /f "delims=" %i in ('dir /s /b /a-d "%~r\winwcp.ini" 2^>nul') do for /f "tokens=1* delims==" %k in ('findstr /b /i "FILE= RF0= RF1= RF2= RF3=" "%i"') do if exist "%l" if %~zl LSS 400000000 copy /y "%l" "%D%\wcp_recenti\" >nul
+for %r in ("%ALLUSERSPROFILE%" "%ProgramFiles%" "C:\WinWCP" "C:\WinWCPXE") do for /f "delims=" %i in ('dir /s /b /a-d "%~r\winwcp.ini" 2^>nul') do for /f "tokens=1* delims==" %k in ('findstr /b /i "DDIR=" "%i"') do if not "%l"=="" for /f "tokens=1* delims=:" %m in ('dir /b /a-d /o-d "%l*.wcp" 2^>nul ^| findstr /n "^"') do if %m LEQ 3 for %s in ("%l%n") do if %~zs LSS 400000000 copy /y "%~s" "%D%\wcp_recenti\" >nul
+>>"%F%" echo ===== 5 FILE COPIATI IN wcp_recenti
+dir "%D%\wcp_recenti" >>"%F%" 2>&1
+>>"%F%" echo ===== FINE %DATE% %TIME%
+echo on
+echo FATTO: copiare sulla chiavetta TUTTA la cartella info_pc_lab che si trova sul Desktop.

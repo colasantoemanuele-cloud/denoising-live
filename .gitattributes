@@ -1,0 +1,10 @@
+# Nessuna conversione degli a capo, per nessun file: il ZIP scaricato da GitHub
+# (Code > Download ZIP) consegna i file identici a come sono nel repository,
+# cosi' verifica_pacchetto.bat puo' controllarne le dimensioni.
+* -text
+
+# File per Windows: nel repository sono gia' con a capo CRLF (e restano CRLF).
+*.bat -text
+*.txt -text
+*.vbs -text
+*.ini -text

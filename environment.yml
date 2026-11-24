@@ -1,0 +1,17 @@
+# Ambiente conda per sviluppo e test su Linux:
+#   conda env create -f environment.yml
+name: denoising_live
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - numpy
+  - scipy        # solo per i test e gli strumenti offline
+  - pytest
+  - tk
+  - matplotlib   # solo per strumenti/valuta_filtri.py --grafici
+  - pip
+  - pip:
+      - neo      # verifica dei file .wcp nei test
+      - pefile   # lettura degli export delle DLL
+      - vermin   # controllo di compatibilita' con Python 3.4

@@ -1,0 +1,33 @@
+# --- Binari pesanti / rigenerabili (vedi README, sezione "Riferimenti") ---
+# Sorgenti completi di WinWCP estratti dagli zip (400+ MB, con immagini e binari).
+# In git restano solo i file chiave in riferimenti/winwcp_chiave/.
+riferimenti/winwcp_sorgenti/
+# File .wcp di prova (26 MB): si ricopiano con strumenti/prepara_riferimenti.sh
+riferimenti/dati/*.wcp
+# Installer e pacchetti per la chiavetta (scaricati/copiati da strumenti/prepara_chiavetta.py)
+chiavetta/pacchetti/
+chiavetta/programma/
+*.exe
+*.msi
+*.whl
+*.zip
+*.tar.gz
+# PDF pesanti
+riferimenti/doc/WinWCP_User_Guide.pdf
+# --- Uscite di esecuzione ---
+__pycache__/
+*.pyc
+.pytest_cache/
+dati_registrati/
+log/
+report_diagnostica*.txt
+diagnostica_*.csv
+diagnostica_*.wcp
+/tmp_*
+numpy_verificato.txt
+config.ini.tmp
+validazione_uscita/
+# Log scritti da installa.bat nella cartella d'installazione
+installa_log.txt
+python_msi_log.txt
+rilevamento_pc.txt

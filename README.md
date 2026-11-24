@@ -48,8 +48,10 @@ Due modalità, stesso codice:
 > rilevano da soli sul posto.
 
 > **Cosa si è ricavato dai sorgenti di WinWCP** (fase 5): [`docs/analisi_sorgenti.md`](docs/analisi_sorgenti.md).
-> In breve: la 5.1.6 è del 2016 ma i file di prova sono datati 2007-2008, quindi **l'orologio del PC
-> del laboratorio è indietro**; i file di prova non mostrano stimolazione; il protocollo ora manda
+> In breve: i vecchi file di prova sono datati 2007-2008, prima dell'uscita della 5.1.6 (2016): il PC
+> che li ha registrati aveva l'orologio indietro. **Ora l'orologio del PC del laboratorio è giusto**
+> (report del 24/11/2026); la diagnostica avvisa comunque se la data del PC è anteriore al 2016.
+> I file di prova non mostrano stimolazione; il protocollo ora manda
 > `uChunksPerSecond = 0` come WinWCP; il programma legge (senza mai scriverle) le impostazioni di
 > WinWCP e le propone come valori iniziali.
 
@@ -329,7 +331,7 @@ terminare `python.exe` dal Task Manager: il file deve riaprirsi in WinWCP con al
 | all'avvio: "Ho trovato le impostazioni di WinWCP…" | `[digidata] impostazioni_winwcp = chiedi` | Sì = usa canale/calibrazione di WinWCP (anche le volte successive); No = tieni `config.ini` |
 | avviso "WinWCP è impostato in modalità Stimulus protocol" | WinWCP stimola dal Digidata | denoising_live non genera stimoli: chiedere al laboratorio prima di registrare |
 | avviso "Rischio di aliasing" / "LPF-8 in Bypass" | taglio dell'LPF-8 sopra ~150 Hz o Bypass | abbassare il taglio dell'LPF-8 (il laboratorio usa 15 Hz) |
-| passo 1b: orologio "anteriore all'uscita di WinWCP 5.1.6" | data del PC sbagliata (come nei file di prova) | nessun effetto sul programma; i nomi `AAMMGG` seguono la data del PC, come in WinWCP |
+| passo 1b: orologio "anteriore all'uscita di WinWCP 5.1.6" | data del PC sbagliata (come quando furono registrati i vecchi file di prova del 2007-2008; il 24/11/2026 era giusta) | annotarlo e segnalarlo (la data di Windows si corregge solo con l'ok del laboratorio); nessun effetto sul programma: i nomi `AAMMGG` seguono la data del PC, come in WinWCP |
 | passo 3: WinASPI non funziona / 0 adattatori | ASPI mancante dopo la reinstallazione di Windows, o driver del controller SCSI | installare AxoScope (installa WinASPI e il driver SCSI, guida di WinWCP p. 21), riavviare; controllare il controller SCSI in Gestione periferiche |
 | passo 7: nessun Digidata | scheda accesa dopo il PC, cavo, terminatore, ID SCSI | spegnere tutto, accendere prima il Digidata, poi il PC |
 | passo 5: nessuna DLL caricabile | WinWCP non installato, o senza `AxDD132x.dll`/`Axoutils32.dll` nella sua cartella | reinstallare WinWCP; se le DLL sono altrove, `percorso_dll` in `config.ini`. Le DLL non sono nella repository |
@@ -451,8 +453,8 @@ zero è piatto entro 2 mV), sovraelongazione e ritardo sul gradino, taglio 5 Hz,
   **non esista nessuno** di `AAMMGG_NNN_raw.wcp`, `AAMMGG_NNN_filt.wcp`, `AAMMGG_NNN.json`,
   `AAMMGG_NNN.wcp` (il file di WinWCP con quel nome). Il numero si ricalcola **dai file su disco**
   a ogni registrazione, mai dalla memoria: vale anche dopo aver chiuso e riaperto il programma e
-  con l'orologio del laboratorio, che è indietro (2007-2008) e può ripartire sempre dalla stessa
-  data. Un numero di cui resta anche un solo file (per esempio solo `_raw.wcp` dopo un crash) non
+  se l'orologio del PC fosse sbagliato o ripartisse sempre dalla stessa data (era indietro quando
+  furono registrati i vecchi file di prova, 2007-2008; dal report del 24/11/2026 è giusto). Un numero di cui resta anche un solo file (per esempio solo `_raw.wcp` dopo un crash) non
   si riusa; i file di WinWCP (`071210_001.wcp`, `071210_001.1.wcp`, `.avg`…) non si toccano mai.
   **In più, all'apertura**: i tre file si creano solo se non esistono (apertura esclusiva, `x` /
   `O_EXCL`), quindi anche se il calcolo del numero sbagliasse un file esistente non verrebbe mai

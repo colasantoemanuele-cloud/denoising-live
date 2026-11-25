@@ -44,7 +44,8 @@ def main(argv=None):
     cfg = config.carica_o_crea(args.config, base=QUI)
     log, percorso_log = registro.configura(cfg.percorso_assoluto("generale.cartella_log"))
     log.info("=" * 70)
-    log.info("denoising_live avviato; Python %s", compat.versione_python())
+    from dlive.versione import VERSIONE
+    log.info("denoising_live versione %s avviato; Python %s", VERSIONE, compat.versione_python())
     log.info("Percorso di calcolo: %s", compat.descrizione_percorso())
     log.info("Verifica di numpy: %s", esito_numpy[1])
     log.info("Configurazione: %s", args.config)

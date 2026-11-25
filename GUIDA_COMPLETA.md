@@ -17,8 +17,13 @@ Cosa serve:
 * circa 15 minuti a casa e 30-40 minuti in laboratorio.
 
 Cosa cambia sul PC del laboratorio: Python 3.4 in `C:\Python34`, il programma in
-`C:\denoising_live` e quattro icone sul desktop. **WinWCP, le sue impostazioni e i suoi file
+`C:\denoising_live` e tre icone sul desktop. **WinWCP, le sue impostazioni e i suoi file
 non vengono toccati.**
+
+**Le finestre nere non si chiudono da sole**: alla fine di ogni script (anche dopo un
+errore) la finestra resta aperta; leggi la scritta, fai una foto se serve, poi chiudila.
+La prima riga dice la versione, per esempio `denoising_live versione 2026-11-25`: deve
+leggersi nelle foto.
 
 ---
 
@@ -111,8 +116,9 @@ qualcosa si ferma e dice cosa fare (di solito: ricopiare la cartella dalla chiav
 Python con una barra verde: aspetta, non premere Annulla.
 
 * **Se va bene**, la finestra finisce con `INSTALLAZIONE COMPLETATA.` e sul desktop
-  compaiono quattro icone: **denoising_live (Digidata)**, **Diagnostica Digidata**,
-  **Raccogli risultati** e **denoising_live (simulazione)** (quest'ultima non serve). Nel passo `7/8` devi
+  compaiono tre icone: **denoising_live (Digidata)**, **Diagnostica Digidata** e
+  **Raccogli risultati**. (L'icona della simulazione non c'è più: nella repository non ci
+  sono i file di prova; se è rimasta da una prova vecchia, `disinstalla.bat` la toglie.) Nel passo `7/8` devi
   leggere `WinWCP: ...`, `AxDD132x.dll: presente`, `Axoutils32.dll: presente`,
   `WinASPI: presente`. Nel passo `8/8` ogni riga inizia con `[OK    ]`, `[AVVISO]` o
   `[ERRORE]`: gli AVVISO non bloccano.

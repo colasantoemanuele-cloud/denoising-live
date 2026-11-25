@@ -5,7 +5,16 @@ rem  Scarica nella cartella del progetto i due file che servono al PC del
 rem  laboratorio (Python 3.4.4 e numpy 1.15.4), con curl.exe oppure, se non
 rem  c'e', con PowerShell; poi controlla tutta la cartella (nomi, dimensioni
 rem  e SHA-256) con verifica_pacchetto.bat.
+rem  Regole di scrittura: vedi installa.bat (niente blocchi con variabili,
+rem  percorsi tra virgolette, niente %X:...% su variabili non definite).
 rem =====================================================================
+rem --- la finestra non si chiude mai da sola: ci si rilancia dentro cmd /k
+if defined DLIVE_FINESTRA goto dentro
+set DLIVE_FINESTRA=1
+cmd /k call "%~f0" %*
+exit /b
+:dentro
+echo denoising_live versione 2026-11-25
 setlocal
 cd /d "%~dp0"
 set MSI=python-3.4.4.msi
@@ -44,7 +53,7 @@ if errorlevel 1 goto problemi
 echo.
 echo =====================================================================
 echo  TUTTO A POSTO: copia questa cartella sulla chiavetta
-echo  (la cartella e' %~dp0)
+echo  [la cartella e' "%~dp0"]
 echo =====================================================================
 echo.
 pause
@@ -73,10 +82,11 @@ rem ---------------------------------------------------------------------
 rem :scarica NOME DIMENSIONE INDIRIZZO
 rem (call davanti a curl: cosi' i test possono sostituirlo con un curl.bat)
 :scarica
-if exist "%~1" if "%~z1"=="%~2" (
-  echo   gia' presente: %~1
-  goto :eof
-)
+if not exist "%~1" goto scarica_nuovo
+if not "%~z1"=="%~2" goto scarica_nuovo
+echo   gia' presente: %~1
+goto :eof
+:scarica_nuovo
 if exist "%~1" del "%~1"
 if exist "%~1.part" del "%~1.part"
 echo   Scarico %~1 ...
@@ -86,7 +96,11 @@ call curl -L -f -sS --retry 2 -o "%~1.part" "%~3"
 if errorlevel 1 goto scarica_ko
 goto scarica_fine
 :scarica_ps
-powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = 3072; (New-Object Net.WebClient).DownloadFile('%~3', '%CD%\%~1.part')" >nul 2>&1
+rem indirizzo e destinazione passano per variabili d'ambiente lette da PowerShell
+rem ($env:...): cosi' apostrofi, spazi, parentesi e & nel percorso non danno noia
+set "DLIVE_URL=%~3"
+set "DLIVE_DEST=%CD%\%~1.part"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = 3072; (New-Object Net.WebClient).DownloadFile($env:DLIVE_URL, $env:DLIVE_DEST)" >nul 2>&1
 :scarica_fine
 if not exist "%~1.part" goto scarica_ko
 for %%p in ("%~1.part") do if not "%%~zp"=="%~2" goto scarica_ko

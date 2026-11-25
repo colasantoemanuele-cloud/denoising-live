@@ -6,6 +6,7 @@ Gli script .bat si provano anche davvero, con il cmd di Wine, se c'e'
 l'immagine Docker dlive-wine:pronto (README, "Test"); altrimenti quella
 parte si salta.
 """
+import glob
 import io
 import os
 import re
@@ -63,7 +64,7 @@ def test_elenco_di_verifica_pacchetto_aggiornato():
 
 def test_installa_copia_solo_file_controllati():
     t = _leggi("installa.bat").decode("ascii")
-    m = re.search(r"for %%f in \(([^)]*)\) do \(\r\n\s*copy /y", t)
+    m = re.search(r"for %%f in \(([^)]*)\) do call :copia ", t)
     copiati = m.group(1).split()
     voci = dict(pacchetto.elenco_programma(RADICE))
     for f in copiati + ["config.ini", "crea_collegamenti.vbs", "verifica_pacchetto.bat"]:
@@ -74,7 +75,7 @@ def test_installa_copia_solo_file_controllati():
     assert "cartella_installazione.txt" in t
     # disinstalla toglie gli stessi file (e l'icona Raccogli risultati con gli altri collegamenti)
     d = _leggi("disinstalla.bat").decode("ascii")
-    for f in copiati + ["cartella_installazione.txt"]:
+    for f in copiati + ["cartella_installazione.txt", "python_percorso.txt"]:
         assert f in d, f
     v = _leggi("crea_collegamenti.vbs").decode("ascii")
     assert '"Raccogli risultati", "raccogli_risultati.bat"' in v
@@ -264,7 +265,7 @@ def test_guida_completa_coincide_con_script_e_finestra():
     citati = [
         "Avvia anteprima", "Avvia registrazione", "Ferma", "Aggiungi marker", "Marker:",
         "Aggiornamento (Hz)", "Taglio LPF-8 (Hz)", "Applica", "Filtrato attuale", "Grafico",
-        "denoising_live (Digidata)", "Diagnostica Digidata", "denoising_live (simulazione)", "Raccogli risultati",
+        "denoising_live (Digidata)", "Diagnostica Digidata", "Raccogli risultati",
         "denoising_live - %s", "DIGIDATA 1322A", "Persi: %d", "REGISTRAZIONE", "anteprima",
         "Impostazioni di WinWCP", "Scheda occupata", "Driver Digidata", "Campioni persi",
         "Nessun Digidata trovato", "e' gia' in uso da", "Fermare la registrazione in corso?",
@@ -272,7 +273,7 @@ def test_guida_completa_coincide_con_script_e_finestra():
         "C'e' un problema nella cartella", "NON TROVO I FILE DEL PROGRAMMA", "MANCA ", "DIMENSIONE ERRATA",
         "SHA-256 ERRATO", "INSTALLAZIONE COMPLETATA.", "INSTALLAZIONE COMPLETATA, MA CI SONO",
         "INSTALLAZIONE INTERROTTA", "AxDD132x.dll: presente", "Axoutils32.dll: presente", "WinASPI: presente",
-        "WinWCP: %WCPDIR%", "WinWCP non trovato", "manca AxDD132x.dll", "manca Axoutils32.dll",
+        'WinWCP: "%WCPDIR%"', "WinWCP non trovato", "manca AxDD132x.dll", "manca Axoutils32.dll",
         "WinASPI non installato", "numpy non funziona su questo PC", "Python 3.4 non trovato", "WinWCP e' aperto",
         "ESITO: nessun errore. Si puo' passare all'anteprima ^(avvia.bat^).", "ESITO: ci sono errori",
         "Nessun errore: si puo' passare all'anteprima (avvia.bat).", "RIEPILOGO", "WinASPI funziona",
@@ -284,7 +285,7 @@ def test_guida_completa_coincide_con_script_e_finestra():
         "segnale su piu' ingressi", "canale_ingresso", "PASSO %s", "Vuoi usarlo? (S/N)",
         "Il segnale arriva sull'ingresso AI%d. Vuoi usarlo? (S/N)",
         "config.ini aggiornato: ora il programma usa l'ingresso AI%d", "risultati_prova_",
-        "Copia sulla chiavetta la cartella %NOME% dal Desktop.",
+        "Copia sulla chiavetta la cartella %NOME% %DOVE%.", "set DOVE=dal Desktop",
     ]
     for c in citati:
         assert c in sorgenti or c in _leggi("config.ini").decode("utf-8"), c
@@ -332,7 +333,8 @@ richiede_wine = pytest.mark.skipif(not _wine_disponibile(),
 
 def _esegui_bat(cartella, bat, *argomenti):
     """Esegue un .bat con il cmd di Wine (premendo Invio alle pause); (codice, testo)."""
-    cmd = ["docker", "run", "--rm", "-i", "-v", "%s:/w" % cartella, "-w", "/w", IMMAGINE_WINE,
+    # DLIVE_FINESTRA=1: niente rilancio dentro cmd /k, cosi' il codice d'uscita e' quello dello script
+    cmd = ["docker", "run", "--rm", "-i", "-e", "DLIVE_FINESTRA=1", "-v", "%s:/w" % cartella, "-w", "/w", IMMAGINE_WINE,
            "bash", "-c", '/usr/lib/wine/wine64 cmd /c "$@" 2>/dev/null; echo "@@codice=$?"', "-", bat] + \
         list(argomenti)
     out = subprocess.run(cmd, input=b"\r\n" * 5, stdout=subprocess.PIPE, timeout=120).stdout
@@ -464,11 +466,11 @@ CURL_FINTO = (b'@echo off\r\nrem curl finto per i test: %1-%5 opzioni, %6=-o, %7
               b'copy /y "Z:\\w\\scaricati\\%~nx8" "%~7" >nul\r\n')
 
 
-def _cartella_progetto(tmp_path, con_scaricati=False):
-    """tmp_path/w/progetto: i file del programma (senza i due file da scaricare);
+def _cartella_progetto(tmp_path, con_scaricati=False, nome="progetto"):
+    """tmp_path/w/<nome>: i file del programma (senza i due file da scaricare);
     tmp_path/w/scaricati: i due file 'su internet' (finti, dimensione giusta)."""
     w = tmp_path / "w"
-    c = w / "progetto"
+    c = w / nome
     for rel, _ in pacchetto.elenco_programma(RADICE):
         dst = c.joinpath(*rel.split("/"))
         if not dst.parent.exists():
@@ -482,9 +484,12 @@ def _cartella_progetto(tmp_path, con_scaricati=False):
     return w, c
 
 
-def _wine(w, comandi, immagine=None, timeout=300):
-    out = subprocess.run(["docker", "run", "--rm", "-i", "-v", "%s:/w" % w, immagine or IMMAGINE_WINE, "bash",
-                          "-c", comandi + "; chmod -R a+rwX /w"],
+def _wine(w, comandi, immagine=None, timeout=300, rilancio=False):
+    """rilancio=False: DLIVE_FINESTRA=1, gli script non si rilanciano dentro cmd /k
+    (codici d'uscita affidabili); True: come con il doppio clic."""
+    amb = [] if rilancio else ["-e", "DLIVE_FINESTRA=1"]
+    out = subprocess.run(["docker", "run", "--rm", "-i"] + amb + ["-v", "%s:/w" % w, immagine or IMMAGINE_WINE,
+                          "bash", "-c", comandi + "; chmod -R a+rwX /w"],
                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=timeout).stdout
     return out.decode("ascii", "replace").replace("\r", "")
 
@@ -569,29 +574,102 @@ def test_raccogli_copia_tutto_quello_che_serve():
         assert not re.search(r"(^|[&(]\s*|\bdo\s+|\)\s*)(del|erase|rd|rmdir|move)\s", r), r
 
 
+def _versione():
+    from dlive.versione import VERSIONE
+    return VERSIONE
+
+
+def test_versione_uguale_ovunque():
+    sys.path.insert(0, os.path.join(RADICE, "strumenti"))
+    import versione as V
+    v = V.versioni(RADICE)
+    date = set(d for ds in v.values() for d in ds)
+    assert date == {_versione()}, v
+    for nome, ds in v.items():
+        assert ds, nome
+    for p in glob.glob(os.path.join(RADICE, "*.bat")):
+        prime = [r for r in io.open(p, "rb").read().decode("ascii").splitlines()
+                 if r.strip().lower().startswith("echo")]
+        assert prime[0] == "echo denoising_live versione " + _versione(), (p, prime[0])
+    assert "denoising_live versione 2026-11-25".replace("2026-11-25", _versione())
+    inst = _leggi("installa.bat").decode("ascii")
+    assert '> "%LOG%" echo denoising_live versione ' + _versione() in inst          # anche nel log
+    assert ">> \"%R%\\elenco.txt\" echo denoising_live versione " + _versione() in \
+        _leggi("raccogli_risultati.bat").decode("ascii")
+
+
+@richiede_wine
+def test_wine_rilancio_dentro_cmd_k_in_cartella_difficile(tmp_path):
+    """Doppio clic (senza DLIVE_FINESTRA): lo script si rilancia dentro cmd /k,
+    anche in una cartella con spazi, parentesi, & e apostrofo, e mostra il messaggio."""
+    w, c = _cartella_progetto(tmp_path, nome="prova (1) & D'Angelo")
+    t = _wine(str(w), 'cd "/w/prova (1) & D\'Angelo" && printf "\\r\\n" | /usr/lib/wine/wine64 cmd /c installa.bat '
+                      '2>/dev/null', rilancio=True)
+    righe = [r for r in t.splitlines() if r.strip()]
+    assert righe[0] == "denoising_live versione " + _versione(), righe[:3]
+    assert "MANCA python-3.4.4.msi" in t and "INSTALLAZIONE INTERROTTA" in t, t
+    assert "Cartella d'installazione" not in t                      # va solo nel log
+    log = (c / "installa_log.txt").read_bytes().decode("ascii")
+    assert "denoising_live versione " + _versione() in log and "prova (1) & D'Angelo" in log
+
+
+@richiede_wine
+def test_wine_python_in_un_altra_cartella(tmp_path):
+    """avvia.bat e diagnostica.bat usano il Python scritto in python_percorso.txt
+    (qui una cartella con spazi, parentesi, & e apostrofo; 'python.exe' e' hostname.exe)."""
+    w = tmp_path / "w"
+    prog = w / "denoising_live"
+    prog.mkdir(parents=True)
+    for f in ("avvia.bat", "diagnostica.bat"):
+        shutil.copy(os.path.join(RADICE, f), str(prog))
+    (prog / "diagnostica_digidata.py").write_bytes(b"")
+    altro = "C:\\Altro Python (1) & D'Angelo"
+    (prog / "python_percorso.txt").write_bytes(altro.encode("ascii") + b"\r\n")     # come lo scrive installa.bat
+    t = _wine(str(w), 'P="$HOME/.wine/drive_c/Altro Python (1) & D\'Angelo"; mkdir -p "$P"; '
+                      'cp "$HOME/.wine/drive_c/windows/system32/hostname.exe" "$P/python.exe"; '
+                      'cd /w/denoising_live && printf "\\r\\n\\r\\n" | /usr/lib/wine/wine64 cmd /c diagnostica.bat '
+                      '2>/dev/null; echo "@@codice=$?"; hostname')
+    assert "Python 3.4 non trovato" not in t, t
+    # e' partito il "python.exe" di quella cartella (hostname.exe, che rifiuta gli argomenti)
+    assert "hostname" in t.split("Diagnostica in corso")[1], t
+    os.remove(str(prog / "python_percorso.txt"))
+    t = _wine(str(w), 'cd /w/denoising_live && printf "\\r\\n" | /usr/lib/wine/wine64 cmd /c avvia.bat 2>/dev/null; '
+                      'echo "@@codice=$?"')
+    assert "Python 3.4 non trovato" in t and "@@codice=1" in t, t
+
+
+def test_icona_simulazione_non_piu_creata():
+    v = _leggi("crea_collegamenti.vbs").decode("ascii")
+    voci = v.split("vecchie = ")[0]
+    assert "simulazione" not in voci.split("voci = ")[1]
+    assert 'vecchie = Array("denoising_live (simulazione)")' in v
+    assert "avvia_simulazione.bat" not in _leggi("installa.bat").decode("ascii").split("for %%f in (")[1].split(")")[0]
+
+
 # ---------------------------------------------------------------- la guida rapida alla lettera (Wine a 32 bit)
 IMMAGINE_WINE32 = os.environ.get("DLIVE_WINE32_IMMAGINE", "dlive-wine32")
 SCRIPT_COLLEGA = r"""
 C="$WINEPREFIX/drive_c"
-P=/w/progetto
+P="/w/$CARTELLA"
 wine reg add "HKCU\\Software\\Wine" /v Version /d win10 /f >/dev/null 2>&1
 echo "@@passo 2"
-cd $P && printf '\r\n' | wine cmd /c prepara.bat 2>/dev/null | tr -d '\r'; rm -f curl.bat
+cd "$P" && printf '\r\n' | wine cmd /c prepara.bat 2>/dev/null | tr -d '\r'; rm -f curl.bat
 wine reg add "HKCU\\Software\\Wine" /v Version /d winxp /f >/dev/null 2>&1
 echo "@@passo 2 su XP"
 printf '\r\n' | wine cmd /c prepara.bat 2>/dev/null | tr -d '\r'
 mkdir -p "$C/WinWCP" && touch "$C/WinWCP/WinWCP.exe" "$C/WinWCP/AxDD132x.dll" "$C/WinWCP/Axoutils32.dll"
 touch "$C/windows/system32/drivers/aspi32.sys"
-cp -r $P "$C/denoising-live-main"
+cp -r "$P" "$C/$CARTELLA"
 echo "@@passo 7"
-cd "$C/denoising-live-main" && printf '\r\n\r\n' | xvfb-run -a wine cmd /c installa.bat 2>/dev/null | tr -d '\r'
+cd "$C/$CARTELLA" && printf '\r\n\r\n' | xvfb-run -a wine cmd /c installa.bat 2>/dev/null | tr -d '\r'
 echo "@@icone"; ls "$C/users/root/Desktop/" /root/Desktop 2>/dev/null
+echo "@@python_percorso"; cat "$C/denoising_live/python_percorso.txt"; echo
 echo "@@passo 8"
 cd "$C/denoising_live" && printf 'S\r\n\r\n\r\n' | xvfb-run -a wine cmd /c diagnostica.bat --finto --finto-ingresso 4 2>/dev/null | tr -d '\r'
 echo "@@config"; grep canale_ingresso config.ini; ls config.ini.bak
 echo "@@passi 9-10"
 printf '\r\n' | xvfb-run -a wine cmd /c avvia.bat --finto --prova-gui 15 2>/dev/null | tr -d '\r'
-grep -h "Prova GUI completata\|ingresso AI" log/*.log
+grep -h "Prova GUI completata\|ingresso AI\|versione" log/*.log
 echo "@@passo 12"
 printf '\r\n' | wine cmd /c raccogli_risultati.bat 2>/dev/null | tr -d '\r'
 echo "@@risultati"; cd "$C/users/root/Desktop"/risultati_prova_* && find . -type f | sort
@@ -616,20 +694,27 @@ def _parti(t):
 @pytest.mark.skipif(_wine32_e_file_veri() is None,
                     reason="servono l'immagine Docker %s (Wine a 32 bit) e i due file scaricati "
                            "(strumenti/prepara_pacchetto.py)" % IMMAGINE_WINE32)
-def test_wine32_guida_rapida_alla_lettera(tmp_path):
+@pytest.mark.parametrize("cartella", ["denoising-live-main", "denoising-live-main (1)"])
+def test_wine32_guida_rapida_alla_lettera(tmp_path, cartella):
     """Il percorso della guida rapida, come lo farebbe il collega: prepara.bat (con
     un curl simulato che 'scarica' il vero MSI e la vera wheel), copia in C:\\,
     installa.bat (vero Python 3.4.4 a 32 bit), Diagnostica con la DLL simulata e il
     segnale su un altro ingresso (risposta S), denoising_live (Digidata) con la DLL
     simulata (anteprima, registrazione, marker), Raccogli risultati.  Le scritte che
     la guida rapida dice di vedere devono comparire identiche."""
-    w, c = _cartella_progetto(tmp_path)
+    w, c = _cartella_progetto(tmp_path, nome=cartella)
     for nome, *_ in pacchetto.SCARICAMENTI:
         shutil.copy(os.path.join(_wine32_e_file_veri(), nome), str(w / "scaricati"))
     (c / "curl.bat").write_bytes(CURL_FINTO)
-    t = _wine(str(w), SCRIPT_COLLEGA, immagine=IMMAGINE_WINE32, timeout=1500)
+    # come con il doppio clic: gli script si rilanciano dentro cmd /k (rilancio=True)
+    t = _wine(str(w), "CARTELLA='%s'\n" % cartella + SCRIPT_COLLEGA, immagine=IMMAGINE_WINE32, timeout=1500,
+              rilancio=True)
     p = _parti(t)
     g = _leggi("GUIDA_RAPIDA.md").decode("utf-8")
+    versione = "denoising_live versione " + _versione()
+    for passo in ("passo 2", "passo 7", "passo 8", "passo 12"):
+        prima = [r for r in p[passo].splitlines() if r.strip()][0]
+        assert prima == versione, (passo, prima)
     # passo 2
     assert "TUTTO A POSTO: copia questa cartella sulla chiavetta" in p["passo 2"], p["passo 2"]
     assert "`TUTTO A POSTO: copia questa cartella sulla chiavetta`" in g
@@ -640,6 +725,8 @@ def test_wine32_guida_rapida_alla_lettera(tmp_path):
     assert "`INSTALLAZIONE COMPLETATA`" in g
     for icona in ("Diagnostica Digidata.lnk", "denoising_live (Digidata).lnk", "Raccogli risultati.lnk"):
         assert icona in p["icone"], p["icone"]
+    assert "simulazione" not in p["icone"]
+    assert p["python_percorso"].strip() == "C:\\Python34"
     # passo 8
     assert "Il segnale arriva sull'ingresso AI4. Vuoi usarlo? (S/N)" in p["passo 8"], p["passo 8"]
     assert "config.ini aggiornato: ora il programma usa l'ingresso AI4" in p["passo 8"]
@@ -648,6 +735,7 @@ def test_wine32_guida_rapida_alla_lettera(tmp_path):
     assert "canale_ingresso = 4" in p["config"] and "config.ini.bak" in p["config"]
     # passi 9-10: il programma parte sull'ingresso scelto e registra
     assert "Prova GUI completata: registrazione" in p["passi 9-10"] and "ingresso AI4" in p["passi 9-10"]
+    assert versione + " avviato" in p["passi 9-10"]
     # passo 12
     assert re.search(r"Copia sulla chiavetta la cartella risultati_prova_\d{6}_\d{4} dal Desktop\.", p["passo 12"])
     assert "`Copia sulla chiavetta la cartella risultati_prova_...`" in g

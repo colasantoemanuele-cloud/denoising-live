@@ -1,15 +1,17 @@
 ' Collegamenti sul desktop dell'utente.
 '   cscript crea_collegamenti.vbs C:\denoising_live   crea i collegamenti
 '   cscript crea_collegamenti.vbs /rimuovi              li cancella (disinstalla.bat)
-Dim sh, fso, dest, desk, voci, i, lnk, p
+' L'icona della simulazione non si crea piu' (nella repository non ci sono i file
+' di prova), ma /rimuovi la toglie ancora se e' rimasta da un'installazione vecchia.
+Dim sh, fso, dest, desk, voci, vecchie, i, lnk, p
 Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 dest = WScript.Arguments(0)
 desk = sh.SpecialFolders("Desktop")
 voci = Array("denoising_live (Digidata)", "avvia.bat", _
              "Diagnostica Digidata", "diagnostica.bat", _
-             "denoising_live (simulazione)", "avvia_simulazione.bat", _
              "Raccogli risultati", "raccogli_risultati.bat")
+vecchie = Array("denoising_live (simulazione)")
 For i = 0 To UBound(voci) Step 2
   p = desk & "\" & voci(i) & ".lnk"
   If LCase(dest) = "/rimuovi" Then
@@ -25,3 +27,12 @@ For i = 0 To UBound(voci) Step 2
     WScript.Echo "  collegamento: " & voci(i)
   End If
 Next
+If LCase(dest) = "/rimuovi" Then
+  For i = 0 To UBound(vecchie)
+    p = desk & "\" & vecchie(i) & ".lnk"
+    If fso.FileExists(p) Then
+      fso.DeleteFile p
+      WScript.Echo "  rimosso: " & vecchie(i)
+    End If
+  Next
+End If

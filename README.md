@@ -134,7 +134,7 @@ nessun controllo esca dalla finestra.
 ### Test
 
 ```bash
-python -m pytest tests --ignore=tests/validazione -q   # ~5 minuti, 338 test
+python -m pytest tests --ignore=tests/validazione -q   # ~7 minuti, 375 test
 DLIVE_TEST_VELOCI=1 python -m pytest tests -q   # senza il test di 3 ore
 vermin -t=3.4- --violations main.py diagnostica_digidata.py dlive
 python strumenti/prestazioni.py     # tempo CPU
@@ -232,9 +232,41 @@ p. 21). Se mancano, gli script lo dicono con il rimedio.
 | `prepara.bat` | **sul PC con internet** (Windows 10/11): scarica i due file con `curl.exe` (o con PowerShell se `curl` non c'è) in `.part` e li rinomina solo se la dimensione è giusta, poi chiama `verifica_pacchetto.bat /prepara`; finisce con `TUTTO A POSTO: copia questa cartella sulla chiavetta` oppure, se il download non riesce, dà i due link da scaricare a mano. Su XP dice che va usato sul PC con internet; se il ZIP non è estratto lo dice |
 | `verifica_pacchetto.bat` | (non serve lanciarlo a mano: lo chiamano `prepara.bat` e `installa.bat`) controlla che nella cartella ci siano i due file scaricati e i 36 file del programma con **nome e dimensione giusti** (le dimensioni le scrive `strumenti/genera_verifica_pacchetto.py`, un test controlla che siano aggiornate); su Windows 10/11 verifica anche lo **SHA-256** con `certutil` (Windows 7: byte separati da spazi; XP non ha `certutil`: lo fa poi `installa.bat`). Riconosce il ZIP non estratto e i file scaricati due volte (`python-3.4.4 (1).msi`). Non modifica nulla; funziona su XP e su Windows 10/11 |
 | `installa.bat` | **rileva** Windows, Service Pack (avvisa sotto XP SP2), 32/64 bit, diritti, spazio su C:, Python già presenti (se è registrato un Python 3.4 fuori da `C:\Python34` usa quello), tutto in `installa_log.txt` → `verifica_pacchetto.bat /installa` → installa Python 3.4.4 in `C:\Python34` (se non c'è già; log in `python_msi_log.txt`; spiega i codici d'errore di msiexec) → controlla che sia 3.4 a 32 bit con tkinter e ctypes → **SHA-256** dei due file con Python (`python -m dlive.pacchetto`) → installa numpy con il pip incluso e **prova a usarlo** (se non funziona lo toglie: il programma userà il percorso senza numpy) → copia il programma in `C:\denoising_live` **conservando un `config.ini` già presente** → tre collegamenti sul desktop → cerca **WinWCP** (`C:\WinWCP*`, `Programmi\WinWCP*`, `Programmi\Strathclyde*\WinWCP*`), **`AxDD132x.dll` e `Axoutils32.dll`** nella sua cartella e **WinASPI** (`wnaspi32.dll`, `aspi32.sys`) → **rilevamento completo** (`python -m dlive.rilevamento`, § 4 passo 1b) in `C:\denoising_live\rilevamento_pc.txt`. Alla fine dice `INSTALLAZIONE COMPLETATA.` oppure quante ATTENZIONI ci sono |
-| `diagnostica.bat` | se manca Python o lo script lo dice; avvisa se WinWCP è aperto; esegue `diagnostica_digidata.py` (§ 4) e riassume l'esito (`ESITO: nessun errore…` / `ci sono errori…`) |
+| `diagnostica.bat` | usa il Python scritto da `installa.bat` in `C:\denoising_live\python_percorso.txt` (anche fuori da `C:\Python34`), altrimenti `C:\Python34`; se manca Python o lo script lo dice; avvisa se WinWCP è aperto; esegue `diagnostica_digidata.py` (§ 4) e riassume l'esito (`ESITO: nessun errore…` / `ci sono errori…`) |
 | `raccogli_risultati.bat` | icona **Raccogli risultati** (la crea `installa.bat`), oppure doppio clic nella cartella del progetto: copia in `risultati_prova_AAMMGG_HHMM` sul Desktop report della diagnostica, `log`, `dati_registrati` (registrazioni e JSON), `diagnostica_*.wcp/.csv`, `rilevamento_pc.txt`, `config.ini` (e `.bak`), `installa_log.txt`, `python_msi_log.txt` e un `elenco.txt`; copia quello che c'è anche se installazione o prova si sono fermate a metà; non cancella nulla. Data e ora da `wmic` (altrimenti dalla data di Windows), Desktop dal registro |
 | `disinstalla.bat` | dalla cartella d'installazione: chiede conferma, toglie i collegamenti e i file del programma, **conserva** `dati_registrati\`, `log\`, `config.ini` e i file della diagnostica, e propone di disinstallare Python **solo se** l'aveva installato `installa.bat` (file `python_installato_da_denoising_live.txt`) |
+
+**Regole comuni a tutti i `.bat`** (dopo il guasto in laboratorio: `installa.bat` si chiudeva
+da solo dopo "Disco C:"). Il cmd vero espande `%VAR%` quando **legge** la riga, o l'intero
+blocco `( ... )`, prima di valutare gli IF; con una variabile non definita `%X:~-1%` diventa un
+pezzo di testo e l'IF resta con le virgolette sbilanciate (era `installa.bat` riga 73, con
+Python non ancora installato). Quindi: **nessun blocco `( ... )` con variabili dentro**
+(si usano `goto` ed etichette); **percorsi sempre tra virgolette**, anche negli `echo` e nei
+`set "X=..."` (una cartella `denoising-live-main (1)`, `C:\ricerca & sviluppo` o un utente
+`D'Angelo` non rompono niente); **nessun `%X:~...%`, `%X:*...=%`, `%X:a=b%` su una variabile che
+può mancare** (prima `if not defined X goto ...`); PowerShell riceve i percorsi da variabili
+d'ambiente (`$env:DLIVE_DEST`). **Le finestre non si chiudono mai da sole**: lanciati con
+doppio clic, `installa`, `diagnostica`, `raccogli_risultati`, `prepara`, `disinstalla` e
+`avvia` si rilanciano dentro `cmd /k call "%~f0" %*` (la variabile `DLIVE_FINESTRA` evita di farlo
+due volte e lascia intatti gli argomenti, che `diagnostica.bat` passa al Python);
+`verifica_pacchetto.bat`, chiamato con `call`, no. **Versione**: la prima riga a schermo di ogni
+`.bat` (e il log di `installa.bat`, l'`elenco.txt` dei risultati, il report della diagnostica e il
+log del programma) dice `denoising_live versione AAAA-MM-GG`; la scrive
+`python strumenti/versione.py` (un test controlla che coincida ovunque). L'icona
+"denoising_live (simulazione)" non si crea più (nella repository non ci sono i file di prova);
+`disinstalla.bat` la toglie se è rimasta.
+
+**Emulatore delle regole di cmd** (`tests/emula_cmd.py`, `tests/test_bat_espansione.py`): espande
+ogni riga di ogni `.bat` come il cmd in modalità batch (variabile non definita tolta, `%X:...%`
+non definita: via `%X:` e si continua; `%~dp0` e `%~1` come percorsi; righe dopo
+`if not defined X goto` lette solo con X definita) con le variabili dello script tutte definite
+o tutte non definite e la cartella con spazi, `(1)`, `&` e apostrofo, e controlla virgolette,
+blocchi, IF, FOR e `&` dei percorsi fuori dalle virgolette. Sulla versione di prima trova
+`installa.bat` riga 73, `raccogli_risultati.bat` riga 23 e i blocchi chiusi in anticipo da una
+`)` del percorso (copie in `tests/bat_prima_della_correzione/`). **Limiti**: non esegue niente e
+non valuta le condizioni; segue solo i salti `if not defined X goto`, non gli altri `goto`/`call`;
+non emula l'espansione ritardata con `!` (non usata) né i comandi dentro `for /f ('...')`; copre
+le regole documentate nei casi usati da questi script, non tutto il cmd.
 
 **Come sono stati provati**: oltre ai test statici (`tests/test_pacchetto.py`: a capo CRLF,
 etichette, parentesi nei blocchi, elenco dei file aggiornato, guida coerente con script e
@@ -244,7 +276,9 @@ file mancanti, dimensioni errate, ZIP non estratto, SHA-256 giusto e sbagliato i
 Windows 10 e 7); `installa.bat` **per intero** con il vero MSI e la vera wheel (Python 3.4.4 a
 32 bit installato, SHA-256, numpy 1.15.4 funzionante, copia, collegamenti, WinWCP trovato in
 `C:\WinWCP` e in `Programmi\Strathclyde…`, DLL e WinASPI assenti/presenti); `diagnostica.bat
---finto` nel Python installato; `disinstalla.bat`. Wine non è Windows XP: `fsutil`, `find /i`,
+--finto` nel Python installato; `disinstalla.bat`; tutto il percorso della guida rapida anche
+in una cartella `denoising-live-main (1)` e con il rilancio vero dentro `cmd /k`. Wine non è
+Windows XP (e non espande `%` come il cmd vero, vedi l'emulatore qui sopra): `fsutil`, `find /i`,
 `findstr` e `||` dopo una redirezione si comportano diversamente, e gli script evitano le
 costruzioni che differiscono (per esempio i caratteri jolly tra virgolette nei `for`).
 
@@ -252,12 +286,12 @@ costruzioni che differiscono (per esempio i caratteri jolly tra virgolette nei `
 
 | dove | cosa | perché |
 |---|---|---|
-| `C:\denoising_live\` | il programma (`dlive\`, `.bat`, `README.md`, `GUIDA_RAPIDA.txt`, `GUIDA_COMPLETA.txt`, `config.ini`, `cartella_installazione.txt` con il percorso della cartella del progetto); poi, all'uso, `dati_registrati\`, `log\`, report della diagnostica, `rilevamento_pc.txt` | cartella del programma |
+| `C:\denoising_live\` | il programma (`dlive\`, `.bat`, `README.md`, `GUIDA_RAPIDA.txt`, `GUIDA_COMPLETA.txt`, `config.ini`, `cartella_installazione.txt` con il percorso della cartella del progetto, `python_percorso.txt` con la cartella del Python usato); poi, all'uso, `dati_registrati\`, `log\`, report della diagnostica, `rilevamento_pc.txt` | cartella del programma |
 | `C:\Python34\` | Python 3.4.4, pip 7.1.2 e numpy 1.15.4 (in `Lib\site-packages`) | solo se Python non c'è già; se c'è, vi aggiunge numpy |
 | `C:\WINDOWS\system32\` | `python34.dll` e, **se manca**, `msvcr100.dll` (libreria C Microsoft) | lo fa l'installatore di Python "per tutti gli utenti" (azioni `SetDLLDirToSystem32` e `SharedCRT` dell'MSI); non sostituisce DLL esistenti |
 | registro | `HKLM\Software\Python\PythonCore\3.4` e la voce in *Installazione applicazioni* | registrazione standard di Python (serve anche a disinstallarlo) |
 | menu Start | gruppo "Python 3.4" | creato dall'MSI |
-| desktop dell'utente | quattro collegamenti `.lnk` (Digidata, Diagnostica, Raccogli risultati, simulazione); poi la cartella `risultati_prova_…` se si lancia `raccogli_risultati.bat` | `crea_collegamenti.vbs` |
+| desktop dell'utente | tre collegamenti `.lnk` (Digidata, Diagnostica, Raccogli risultati); poi la cartella `risultati_prova_…` se si lancia `raccogli_risultati.bat` | `crea_collegamenti.vbs` |
 | cartella d'installazione | `installa_log.txt`, `python_msi_log.txt` | log del rilevamento e dell'installazione di Python |
 
 **Non tocca**: WinWCP e le sue cartelle, le DLL Axon (`AxDD132x.dll` resta dove è), WinASPI,
@@ -660,7 +694,7 @@ violazione, minimo richiesto 3.3**. Tutta la suite di test gira in Docker su
 ## 8. Test eseguiti (riepilogo)
 
 * **Validazione oggettiva** (§ 11): 42 voci con soglie fisse, verdetto *PRONTO PER LA PROVA IN LABORATORIO*.
-* **338 test pytest** su Linux (tutti superati tranne 4 saltati senza display virtuale; 51 in `tests/test_pacchetto.py` sulla cartella d'installazione e sulle guide, con gli script `.bat` eseguiti con Wine e **la guida rapida seguita alla lettera** sotto Wine a 32 bit: `prepara.bat`, `installa.bat` con il vero Python 3.4.4, Diagnostica con la DLL simulata e la domanda sull'ingresso, il programma in modalità Digidata con la DLL simulata (`main.py --finto --prova-gui`), `raccogli_risultati.bat`, § 3; 21 in `tests/test_ingresso_segnale.py` sul passo 9 della diagnostica (ingresso del segnale, domanda S/N, `config.ini` cambiato solo in quella riga e salvato dal Blocco note) e sulle diagnostiche brevi (`--secondi` sotto 2 s); 6 in `tests/test_rapporto_verdetto.py` sul verdetto del rapporto riproducibile; 12 in `tests/test_nomi_file.py` sulla numerazione dei file; 71 della fase 5 in `tests/test_fase5.py`: protocollo come WinWCP, `RTIMESECS`, LPF-8, impostazioni di WinWCP, rilevamento sul posto con un ambiente finto, comando di raccolta, `leggi_info_lab.py`) (Python 3.12, numpy 2.5, scipy 1.18, neo 0.14): filtri contro
+* **375 test pytest** su Linux (tutti superati tranne 4 saltati senza display virtuale; 32 in `tests/test_bat_espansione.py` con l'emulatore delle regole di cmd su ogni `.bat` (§ 3); 56 in `tests/test_pacchetto.py` sulla cartella d'installazione e sulle guide, con gli script `.bat` eseguiti con Wine e **la guida rapida seguita alla lettera** sotto Wine a 32 bit: `prepara.bat`, `installa.bat` con il vero Python 3.4.4, Diagnostica con la DLL simulata e la domanda sull'ingresso, il programma in modalità Digidata con la DLL simulata (`main.py --finto --prova-gui`), `raccogli_risultati.bat`, § 3; 21 in `tests/test_ingresso_segnale.py` sul passo 9 della diagnostica (ingresso del segnale, domanda S/N, `config.ini` cambiato solo in quella riga e salvato dal Blocco note) e sulle diagnostiche brevi (`--secondi` sotto 2 s); 6 in `tests/test_rapporto_verdetto.py` sul verdetto del rapporto riproducibile; 12 in `tests/test_nomi_file.py` sulla numerazione dei file; 71 della fase 5 in `tests/test_fase5.py`: protocollo come WinWCP, `RTIMESECS`, LPF-8, impostazioni di WinWCP, rilevamento sul posto con un ambiente finto, comando di raccolta, `leggi_info_lab.py`) (Python 3.12, numpy 2.5, scipy 1.18, neo 0.14): filtri contro
   scipy (risposta, notch, poli di Bessel tabulati, sosfilt), attenuazioni, blocchi = colpo
   unico, ritardo/sovraelongazione, cambi dal vivo senza salti, saturazione e picchi,
   decimazione; lettura dei 7 file di prova (con e senza numpy) contro il lettore di

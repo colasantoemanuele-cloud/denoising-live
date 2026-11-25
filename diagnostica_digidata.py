@@ -224,7 +224,8 @@ def main(argv=None):
     canale = args.canale if args.canale is not None else cfg["digidata.canale_ingresso"]
     dll_cfg = args.dll if args.dll is not None else cfg["digidata.percorso_dll"]
     ora = datetime.datetime.now()
-    rep.scrivi("REPORT DIAGNOSTICA DIGIDATA 1322A - denoising_live")
+    from dlive.versione import VERSIONE
+    rep.scrivi("REPORT DIAGNOSTICA DIGIDATA 1322A - denoising_live versione %s" % VERSIONE)
     rep.scrivi("Data: %s" % ora.strftime("%d/%m/%Y %H:%M:%S"))
     rep.scrivi("Cartella del programma: %s" % QUI)
     if args.finto:

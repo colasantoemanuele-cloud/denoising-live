@@ -7,16 +7,20 @@ rem  programma, con il nome e la dimensione giusti.  Dice cosa manca e
 rem  come rimediare.  Non modifica nulla.
 rem  Funziona su Windows XP e su Windows 10/11.  Uso: doppio clic.
 rem  Lo chiamano installa.bat (/installa) e prepara.bat (/prepara): niente
-rem  pausa; non serve lanciarlo a mano.
+rem  pausa; non serve lanciarlo a mano.  Chiamato con call, NON si rilancia
+rem  dentro cmd /k (lo fanno gli script che lo chiamano).
+rem  Regole di scrittura: vedi installa.bat (niente blocchi con variabili,
+rem  percorsi tra virgolette, niente %X:...% su variabili non definite).
 rem =====================================================================
+echo denoising_live versione 2026-11-25
 setlocal
 cd /d "%~dp0"
-set MODO=%~1
+set "MODO=%~1"
 set PROBLEMI=0
 set PROG_N=0
 set PROG_KO=0
 echo.
-echo ==== Controllo della cartella %~dp0 ====
+echo ==== Controllo della cartella "%~dp0" ====
 if exist "main.py" goto scaricati
 echo.
 echo   NON TROVO I FILE DEL PROGRAMMA in questa cartella.
@@ -34,19 +38,19 @@ call :scaricato "numpy-1.15.4-cp34-none-win32.whl" 9932905 df04f4bad8a359daa2ff7
 echo.
 echo -- 2. File del programma --
 rem ---- INIZIO ELENCO (generato da strumenti/genera_verifica_pacchetto.py: non modificare a mano)
-call :file "prepara.bat" 3735
-call :file "installa.bat" 13066
-call :file "disinstalla.bat" 3016
-call :file "crea_collegamenti.vbs" 1076
-call :file "main.py" 8343
-call :file "diagnostica_digidata.py" 31112
-call :file "avvia.bat" 543
-call :file "avvia_simulazione.bat" 237
-call :file "diagnostica.bat" 1527
-call :file "raccogli_risultati.bat" 5321
-call :file "README.md" 65247
-call :file "GUIDA_RAPIDA.txt" 2320
-call :file "GUIDA_COMPLETA.txt" 17580
+call :file "prepara.bat" 4389
+call :file "installa.bat" 15056
+call :file "disinstalla.bat" 3530
+call :file "crea_collegamenti.vbs" 1468
+call :file "main.py" 8405
+call :file "diagnostica_digidata.py" 31175
+call :file "avvia.bat" 1405
+call :file "avvia_simulazione.bat" 372
+call :file "diagnostica.bat" 2415
+call :file "raccogli_risultati.bat" 6211
+call :file "README.md" 68416
+call :file "GUIDA_RAPIDA.txt" 2496
+call :file "GUIDA_COMPLETA.txt" 17957
 call :file "config.ini" ""
 call :file "dlive\__init__.py" 0
 call :file "dlive\acquisizione.py" 22314
@@ -62,6 +66,7 @@ call :file "dlive\rilevamento.py" 20691
 call :file "dlive\scala.py" 7613
 call :file "dlive\sysinfo.py" 6857
 call :file "dlive\verifica_numpy.py" 2495
+call :file "dlive\versione.py" 139
 call :file "dlive\wcpfile.py" 24584
 call :file "dlive\winwcp_impostazioni.py" 18951
 call :file "dlive\devices\__init__.py" 0
@@ -124,12 +129,13 @@ call certutil -hashfile "%~1" SHA256 >nul 2>&1
 if errorlevel 1 goto scaricato_ok
 set H=
 set LETTO=
+set "HATTESO=%~3"
 rem l'hash e' la riga di certutil senza ":" (Windows 7 separa i byte con spazi)
-for /f "delims=" %%h in ('certutil -hashfile "%~1" SHA256') do (set "L=%%h" & call :riga_hash "%~3")
-if defined H (
-  echo   ok %~1  %~z1 byte, SHA-256 verificato
-  goto :eof
-)
+for /f "delims=" %%h in ('certutil -hashfile "%~1" SHA256') do call :riga_hash "%%h"
+if not defined H goto scaricato_nonverificato
+echo   ok %~1  %~z1 byte, SHA-256 verificato
+goto :eof
+:scaricato_nonverificato
 rem certutil non ha dato nessuna riga di hash: non si giudica (lo controlla installa.bat)
 if not defined LETTO goto scaricato_ok
 echo   SHA-256 ERRATO %~1
@@ -142,11 +148,14 @@ goto :eof
 echo   ok %~1  %~z1 byte
 goto :eof
 :riga_hash
+set "L=%~1"
+if not defined L goto :eof
 set "L=%L: =%"
-if "%L%"=="" goto :eof
+if not defined L goto :eof
 if not "%L::=%"=="%L%" goto :eof
 set LETTO=1
-if /i "%L%"=="%~1" set H=1
+if not defined HATTESO goto :eof
+if /i "%L%"=="%HATTESO%" set H=1
 goto :eof
 
 rem ---------------------------------------------------------------------

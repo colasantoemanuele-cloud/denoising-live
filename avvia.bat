@@ -6,7 +6,7 @@ if not exist "%PY%" set PY=python
 "%PY%" -c "import sys" >nul 2>&1
 if errorlevel 1 (
   echo ERRORE: Python 3.4 non trovato ^(C:\Python34\python.exe^).
-  echo Rimedio: eseguire prima installa.bat ^(GUIDA_LABORATORIO.txt, parte B^).
+  echo Rimedio: eseguire prima installa.bat ^(GUIDA_COMPLETA.txt, parte B^).
   pause
   exit /b 1
 )

@@ -6,7 +6,8 @@ rem  del laboratorio): i due file scaricati a parte e i file del
 rem  programma, con il nome e la dimensione giusti.  Dice cosa manca e
 rem  come rimediare.  Non modifica nulla.
 rem  Funziona su Windows XP e su Windows 10/11.  Uso: doppio clic.
-rem  (installa.bat lo chiama con l'opzione /installa: niente pausa.)
+rem  Lo chiamano installa.bat (/installa) e prepara.bat (/prepara): niente
+rem  pausa; non serve lanciarlo a mano.
 rem =====================================================================
 setlocal
 cd /d "%~dp0"
@@ -33,16 +34,19 @@ call :scaricato "numpy-1.15.4-cp34-none-win32.whl" 9932905 df04f4bad8a359daa2ff7
 echo.
 echo -- 2. File del programma --
 rem ---- INIZIO ELENCO (generato da strumenti/genera_verifica_pacchetto.py: non modificare a mano)
-call :file "installa.bat" 12827
-call :file "disinstalla.bat" 2908
-call :file "crea_collegamenti.vbs" 1012
-call :file "main.py" 7788
-call :file "diagnostica_digidata.py" 26241
-call :file "avvia.bat" 546
+call :file "prepara.bat" 3735
+call :file "installa.bat" 13066
+call :file "disinstalla.bat" 3016
+call :file "crea_collegamenti.vbs" 1076
+call :file "main.py" 8343
+call :file "diagnostica_digidata.py" 31112
+call :file "avvia.bat" 543
 call :file "avvia_simulazione.bat" 237
-call :file "diagnostica.bat" 1530
-call :file "README.md" 62148
-call :file "GUIDA_LABORATORIO.txt" 16865
+call :file "diagnostica.bat" 1527
+call :file "raccogli_risultati.bat" 5321
+call :file "README.md" 65247
+call :file "GUIDA_RAPIDA.txt" 2320
+call :file "GUIDA_COMPLETA.txt" 17580
 call :file "config.ini" ""
 call :file "dlive\__init__.py" 0
 call :file "dlive\acquisizione.py" 22314
@@ -63,7 +67,7 @@ call :file "dlive\winwcp_impostazioni.py" 18951
 call :file "dlive\devices\__init__.py" 0
 call :file "dlive\devices\axdd132x.py" 14262
 call :file "dlive\devices\base.py" 1992
-call :file "dlive\devices\dd132x_finto.py" 6941
+call :file "dlive\devices\dd132x_finto.py" 7360
 call :file "dlive\devices\digidata.py" 22977
 call :file "dlive\devices\simulated.py" 13223
 rem ---- FINE ELENCO
@@ -74,6 +78,8 @@ echo   estrarlo tutto, senza aprire ne' modificare i file, e rimettere nella
 echo   cartella estratta i due file del punto 1.
 
 :fine
+rem con /prepara (chiamato da prepara.bat) il riepilogo finale lo scrive prepara.bat
+if /i "%MODO%"=="/prepara" if "%PROBLEMI%"=="0" goto uscita
 echo.
 echo =====================================================================
 if not "%PROBLEMI%"=="0" goto fine_problemi
@@ -89,7 +95,10 @@ echo  ATTENZIONE: %PROBLEMI% problemi, elencati qui sopra con il rimedio.
 echo  Correggerli e rilanciare verifica_pacchetto.bat.
 echo =====================================================================
 :uscita
-if /i not "%MODO%"=="/installa" pause
+if /i "%MODO%"=="/installa" goto senza_pausa
+if /i "%MODO%"=="/prepara" goto senza_pausa
+pause
+:senza_pausa
 endlocal & exit /b %PROBLEMI%
 
 rem ---------------------------------------------------------------------

@@ -25,6 +25,8 @@ def argomenti(argv=None):
     ap.add_argument("--senza-numpy", action="store_true", help="forza il percorso in Python puro")
     ap.add_argument("--file", default="", help="file .wcp da riprodurre in simulazione")
     ap.add_argument("--cartella-dati", default="", help="cartella dove salvare le registrazioni")
+    ap.add_argument("--finto", action="store_true",
+                    help="modalita' Digidata con la DLL simulata (solo per le prove automatiche)")
     ap.add_argument("--prova-gui", type=float, default=0.0,
                     help="prova automatica: avvia, registra per N secondi, cambia il filtro, esce")
     return ap.parse_args(argv)
@@ -113,7 +115,13 @@ def main(argv=None):
                           "unita": cfg["calibrazione.unita"], "nome": cfg["calibrazione.nome_canale"],
                           "ad": cfg["digidata.range_v"], "adcmax": 32677})
         try:
-            dev_digidata.carica_dll()
+            if args.finto:                       # solo per le prove: nessuna scheda vera
+                from dlive.devices.dd132x_finto import LibreriaFinta
+                dev_digidata.lib = LibreriaFinta()
+                dev_digidata.percorso_dll = "<DLL finta per le prove>"
+                log.warning("Modalita' Digidata con la DLL SIMULATA (--finto): nessuna scheda vera")
+            else:
+                dev_digidata.carica_dll()
         except ErroreDispositivo as e:
             log.error("DLL: %s", e.messaggio)
             messagebox.showwarning("Driver Digidata",

@@ -1,9 +1,10 @@
-GUIDA PER IL LABORATORIO: INSTALLARE E PROVARE DENOISING_LIVE
-=============================================================
+GUIDA COMPLETA: INSTALLARE E PROVARE DENOISING_LIVE
+===================================================
 
-Questa guida spiega, passo per passo, come portare denoising_live sul PC del
-laboratorio (Windows XP, senza rete) e fare la prima prova con il Digidata
-1322A.
+La versione in una pagina e' [GUIDA_RAPIDA.md](GUIDA_RAPIDA.md)
+(GUIDA_RAPIDA.txt): di solito basta quella. Questa guida spiega, passo per
+passo, come portare denoising_live sul PC del laboratorio (Windows XP, senza
+rete) e fare la prima prova con il Digidata 1322A.
 
 Importante: il programma non e' mai stato provato con il Digidata vero. Questa
 e' la prima prova. Non serve che tutto funzioni: serve che tu segua i passi e
@@ -18,7 +19,7 @@ Cosa serve:
 - circa 15 minuti a casa e 30-40 minuti in laboratorio.
 
 Cosa cambia sul PC del laboratorio: Python 3.4 in C:\Python34, il programma in
-C:\denoising_live e tre icone sul desktop. WinWCP, le sue impostazioni e i
+C:\denoising_live e quattro icone sul desktop. WinWCP, le sue impostazioni e i
 suoi file non vengono toccati.
 
 ==============================================================================
@@ -34,11 +35,29 @@ solito nella cartella Download).
 A2. Estrarlo. Clic destro su denoising-live-main.zip -> Estrai tutto... ->
 Estrai. Si apre una cartella denoising-live-main; a volte dentro ce n'e'
 un'altra con lo stesso nome. La cartella giusta e' quella in cui si vedono
-installa.bat, verifica_pacchetto.bat, GUIDA_LABORATORIO.txt e la cartella
-dlive. Da qui in poi la chiamiamo "la cartella del progetto".
+prepara.bat, installa.bat, GUIDA_RAPIDA.txt e la cartella dlive. Da qui in poi
+la chiamiamo "la cartella del progetto".
 
-A3. Scaricare i due file che mancano e metterli nella cartella del progetto
-(non in una sottocartella). I nomi devono essere esattamente questi:
+A3. Scaricare i due file che mancano: doppio clic su prepara.bat. Lo script
+scarica da solo, nella cartella del progetto, Python 3.4.4 e numpy (circa 33
+MB), poi controlla tutta la cartella (nomi, dimensioni e SHA-256 dei file).
+
+- Windows 10/11 puo' mostrare "Windows ha protetto il PC": clic su Ulteriori
+  informazioni -> Esegui comunque. Se chiede "Aprire il file?", premi Esegui.
+- Se va bene, la finestra nera finisce con "TUTTO A POSTO: copia questa
+  cartella sulla chiavetta". Premi un tasto per chiuderla.
+- Se dice "Download non riuscito": scarica a mano i due file (A3b) e rilancia
+  prepara.bat.
+- Se dice "C'e' un problema nella cartella": le righe sopra ("MANCA ...",
+  "DIMENSIONE ERRATA ...", "SHA-256 ERRATO ...") dicono quale file e come
+  rimediare; di solito basta scaricare di nuovo il ZIP (A1-A2) e rilanciare
+  prepara.bat.
+- Su Windows XP prepara.bat non scarica nulla e dice di usarlo sul PC con
+  internet.
+
+A3b. Solo se prepara.bat non riesce a scaricare: scaricarli a mano e metterli
+nella cartella del progetto (non in una sottocartella), con questi nomi
+esatti:
 
 - python-3.4.4.msi
     DOVE SCARICARLO: https://www.python.org/ftp/python/3.4.4/python-3.4.4.msi
@@ -53,29 +72,14 @@ A3. Scaricare i due file che mancano e metterli nella cartella del progetto
     DIMENSIONE: 9.932.905 byte (9,5 MB)
 
 - Se il browser dice che il file "non viene scaricato comunemente" o simili,
-  scegli Mantieni / Conserva.
-- Il browser li mette in Download: spostali (trascinandoli) nella cartella del
-  progetto.
-- Se Windows nasconde le estensioni vedrai python-3.4.4 e
-  numpy-1.15.4-cp34-none-win32: va bene cosi'.
+  scegli Mantieni / Conserva; poi spostalo dalla cartella Download alla
+  cartella del progetto.
 - Se un file e' stato scaricato due volte potrebbe chiamarsi "python-3.4.4
   (1).msi": rinominalo togliendo "(1)" e lo spazio prima.
+- Poi rilancia prepara.bat: trova i file gia' presenti, non li riscarica e li
+  controlla.
 
-A4. Controllare la cartella. Nella cartella del progetto fai doppio clic su
-verifica_pacchetto.bat.
-
-- Windows 10/11 puo' mostrare "Windows ha protetto il PC": clic su Ulteriori
-  informazioni -> Esegui comunque. Se chiede "Aprire il file?", premi Esegui.
-- Se va bene, la finestra nera finisce con "TUTTO A POSTO: la cartella e'
-  completa." e, sopra, due righe ok con "SHA-256 verificato" (una per ciascun
-  file scaricato) e la riga "ok: ... file del programma, tutti con la
-  dimensione giusta". Premi un tasto per chiuderla.
-- Se no, la finestra elenca i problemi ("MANCA ...", "DIMENSIONE ERRATA ...",
-  "SHA-256 ERRATO ..."), ciascuno con il rimedio (di solito: riscaricare quel
-  file). Correggi e rilancia verifica_pacchetto.bat finche' dice "TUTTO A
-  POSTO".
-
-A5. Copiare sulla chiavetta l'intera cartella del progetto (con dentro i due
+A4. Copiare sulla chiavetta l'intera cartella del progetto (con dentro i due
 file scaricati). Poi togli la chiavetta con "Rimozione sicura dell'hardware".
 
 ==============================================================================
@@ -116,31 +120,28 @@ computer, apri la chiavetta e copia la cartella del progetto direttamente nel
 disco C: (per esempio diventa C:\denoising-live-main). Apri quella cartella
 sul disco C:.
 
-B5. Controllare la cartella. Doppio clic su verifica_pacchetto.bat.
-
-- Se va bene: "TUTTO A POSTO: la cartella e' completa." Su Windows XP le righe
-  dei due file dicono solo "ok ... byte", senza "SHA-256 verificato": e'
-  normale (lo SHA-256 lo controlla installa.bat). Premi un tasto.
-- Se no: la copia e' incompleta. Ricopia la cartella dalla chiavetta e
-  riprova.
+B5. Niente da controllare a mano. installa.bat controlla da solo che nella
+cartella ci sia tutto (lo fa con verifica_pacchetto.bat, che non serve
+lanciare); se manca qualcosa si ferma e dice cosa fare (di solito: ricopiare
+la cartella dalla chiavetta).
 
 B6. Installare. Doppio clic su installa.bat. Dura 2-5 minuti: scorre i passi
 da 0/8 a 8/8; durante il passo 2/8 compare una finestrella di installazione di
 Python con una barra verde: aspetta, non premere Annulla.
 
 - Se va bene, la finestra finisce con "INSTALLAZIONE COMPLETATA." e sul
-  desktop compaiono tre icone: denoising_live (Digidata), Diagnostica Digidata
-  e denoising_live (simulazione) (quest'ultima non serve). Nel passo 7/8 devi
-  leggere "WinWCP: ...", "AxDD132x.dll: presente", "Axoutils32.dll: presente",
-  "WinASPI: presente". Nel passo 8/8 ogni riga inizia con "[OK    ]", [AVVISO]
-  o [ERRORE]: gli AVVISO non bloccano.
+  desktop compaiono quattro icone: denoising_live (Digidata), Diagnostica
+  Digidata, Raccogli risultati e denoising_live (simulazione) (quest'ultima
+  non serve). Nel passo 7/8 devi leggere "WinWCP: ...", "AxDD132x.dll:
+  presente", "Axoutils32.dll: presente", "WinASPI: presente". Nel passo 8/8
+  ogni riga inizia con "[OK    ]", [AVVISO] o [ERRORE]: gli AVVISO non
+  bloccano.
 - Se finisce con "INSTALLAZIONE COMPLETATA, MA CI SONO ... ATTENZIONI": leggi
   le righe ATTENZIONE (WinWCP, DLL Axon, WinASPI) e guarda la parte C. Fai una
   foto.
 - Se finisce con "INSTALLAZIONE INTERROTTA": il motivo e il rimedio sono
-  scritti subito sopra. Se non riesci a risolvere, fai una foto e porta
-  indietro il file installa_log.txt (e, se c'e', python_msi_log.txt) dalla
-  cartella del progetto.
+  scritti subito sopra. Se non riesci a risolvere, fai una foto e fai doppio
+  clic su raccogli_risultati.bat nella cartella del progetto (parte D).
 
 B7. Diagnostica. Con WinWCP ancora chiuso, doppio clic sull'icona Diagnostica
 Digidata del desktop. Dura circa 30 secondi, poi si apre il Blocco note con il
@@ -160,28 +161,29 @@ Chiudi il Blocco note.
 
 B7b. Su quale ingresso arriva il segnale. La finestra del programma non
 permette di scegliere l'ingresso: lo decide la riga canale_ingresso di
-C:\denoising_live\config.ini (di solito 2). Nel report, sotto "PASSO 9", ci
-sono i valori dei 16 ingressi (AI0 ... AI15) e poi una riga che inizia con
-">>> OK:" o ">>> AVVISO:", per esempio "segnale trovato sull'ingresso AI4;
-config.ini usa AI2". La stessa frase compare nel RIEPILOGO come "passo 9".
+C:\denoising_live\config.ini (di solito 2). Al passo 9 la diagnostica guarda
+tutti i 16 ingressi (AI0 ... AI15).
 
-- Se i due numeri sono uguali (per esempio "sull'ingresso AI2; config.ini usa
-  AI2"): va bene, vai a B8.
-- Se sono diversi, metti in config.ini il numero dell'ingresso trovato:
-  1. chiudi denoising_live, se e' aperto;
-  2. apri la cartella C:\denoising_live e fai doppio clic su config.ini (si
-     apre con il Blocco note; se chiede con cosa aprirlo, scegli Blocco note);
-  3. cerca la riga "canale_ingresso = 2" (menu Modifica -> Trova, scrivi
-     canale_ingresso) e cambia solo il numero, per esempio "canale_ingresso =
-     4";
-  4. menu File -> Salva (non "Salva con nome", non cambiare la codifica) e
-     chiudi il Blocco note;
-  5. rifai la diagnostica (B7): ora la riga deve dire "config.ini usa AI4".
+- Se il segnale arriva su un altro ingresso, la diagnostica si ferma e chiede,
+  per esempio, "Il segnale arriva sull'ingresso AI4. Vuoi usarlo? (S/N)".
+  Scrivi S e premi Invio: aggiorna da sola config.ini (ne tiene una copia in
+  config.ini.bak), scrive "config.ini aggiornato: ora il programma usa
+  l'ingresso AI4" e continua. Con N non cambia nulla.
+- Nel report, sotto "PASSO 9", e nel RIEPILOGO c'e' sempre una riga che dice
+  com'e' andata, per esempio "segnale trovato sull'ingresso AI2; config.ini
+  usa AI2" (va bene).
 - Se dice "nessun ingresso con segnale": controlla che il cavo dall'LPF-8 al
   Digidata sia collegato e che in quel momento ci sia un segnale; fai una foto
   dei collegamenti e rifai la diagnostica.
 - Se dice "segnale su piu' ingressi" e config.ini usa uno di quelli: lascia
-  config.ini com'e' e annotalo.
+  tutto com'e' e annotalo.
+- Ripiego a mano (solo se hai risposto N per sbaglio, o se te lo chiedono):
+  chiudi denoising_live; apri la cartella C:\denoising_live e fai doppio clic
+  su config.ini (si apre con il Blocco note); cerca la riga "canale_ingresso =
+  2" (menu Modifica -> Trova) e cambia solo il numero, per esempio
+  "canale_ingresso = 4"; menu File -> Salva (non "Salva con nome", non
+  cambiare la codifica); rifai la diagnostica: la riga deve dire "config.ini
+  usa AI4".
 
 B8. Avviare il programma. Doppio clic sull'icona denoising_live (Digidata).
 
@@ -198,10 +200,9 @@ B9. Anteprima. Premi Avvia anteprima.
 - Controlla che il grafico mostri il segnale: valori in mV dello stesso ordine
   di quelli che si vedono di solito in WinWCP, che cambiano quando il segnale
   cambia. Se la traccia e' piatta a 0 o e' solo rumore, potrebbe essere
-  l'ingresso sbagliato: fai una foto, premi Ferma, chiudi il programma, guarda
-  la riga del passo 9 del report (B7b) e, se l'ingresso e' diverso da quello
-  di config.ini, cambialo come spiegato in B7b, rifai la diagnostica e riapri
-  il programma.
+  l'ingresso sbagliato: fai una foto, premi Ferma, chiudi il programma e rifai
+  la diagnostica (B7); se chiede di usare un altro ingresso rispondi S, poi
+  riapri il programma. Se non lo chiede, vedi il ripiego a mano in B7b.
 - (facoltativo) Se sai a quanto e' impostato il filtro LPF-8, scrivi quel
   valore nella casella Taglio LPF-8 (Hz) e premi Applica accanto.
 - Se il grafico e' lento o a scatti: nel riquadro Grafico, Aggiornamento (Hz),
@@ -239,13 +240,18 @@ Chiudi WinWCP. Fine della prova.
 C. Se qualcosa va storto
 ------------------------
 
+- "Download non riuscito"
+    DOVE: prepara.bat
+    COSA FARE: scaricare a mano i due file (A3b) e rilanciare prepara.bat
+
 - "MANCA python-3.4.4.msi" (o il file numpy), "DIMENSIONE ERRATA", "SHA-256
   ERRATO"
-    DOVE: verifica_pacchetto.bat, installa.bat
-    COSA FARE: riscaricare quel file (parte A3) e ricopiare la cartella
+    DOVE: prepara.bat, installa.bat
+    COSA FARE: sul PC con internet rilanciare prepara.bat (parte A) e
+      ricopiare la cartella
 
 - "NON TROVO I FILE DEL PROGRAMMA"
-    DOVE: verifica_pacchetto.bat
+    DOVE: prepara.bat
     COSA FARE: il ZIP non e' stato estratto: parte A2
 
 - "ATTENZIONE: WinWCP non trovato"
@@ -277,11 +283,15 @@ C. Se qualcosa va storto
       cavo collegato, riaccendere il PC (Digidata sempre acceso prima), rifare
       la diagnostica
 
-- "segnale trovato sull'ingresso AI4; config.ini usa AI2" (numeri diversi),
-  oppure traccia piatta o solo rumore nell'anteprima
-    DOVE: diagnostica (passo 9), programma
-    COSA FARE: cambiare canale_ingresso in C:\denoising_live\config.ini con il
-      Blocco note (B7b) e rifare la diagnostica
+- "Il segnale arriva sull'ingresso AI4. Vuoi usarlo? (S/N)"
+    DOVE: diagnostica (passo 9)
+    COSA FARE: rispondere S (B7b)
+
+- traccia piatta o solo rumore nell'anteprima, oppure "segnale trovato
+  sull'ingresso AI4; config.ini usa AI2"
+    DOVE: programma, diagnostica (passo 9)
+    COSA FARE: rifare la diagnostica e rispondere S; altrimenti il ripiego a
+      mano di B7b
 
 - WinWCP non installato (nessuna icona ne' voce nel menu Start)
     DOVE: prima di installare (B0)
@@ -324,19 +334,27 @@ C. Se qualcosa va storto
 D. Cosa riportare indietro
 --------------------------
 
-Copia sulla chiavetta, in una cartella nuova (per esempio risultati_prova):
+Doppio clic sull'icona Raccogli risultati del desktop (se l'icona non c'e',
+perche' l'installazione si e' fermata prima: doppio clic su
+raccogli_risultati.bat nella cartella del progetto). Copia quello che c'e',
+anche se la prova si e' fermata a meta', in una cartella nuova sul Desktop,
+risultati_prova_AAMMGG_HHMM, e finisce con "Copia sulla chiavetta la cartella
+risultati_prova_... dal Desktop".
 
-1. C:\denoising_live\report_diagnostica.txt
-2. la cartella C:\denoising_live\log (tutta)
-3. i file creati dalla registrazione, in C:\denoising_live\dati_registrati:
-   AAMMGG_NNN_raw.wcp, AAMMGG_NNN_filt.wcp, AAMMGG_NNN.json
-4. i file creati dalla diagnostica, in C:\denoising_live:
-   diagnostica_AAMMGG_HHMMSS.wcp e diagnostica_AAMMGG_HHMMSS.csv
-5. C:\denoising_live\rilevamento_pc.txt, C:\denoising_live\config.ini
-   (soprattutto se l'hai cambiato in B7b) e, dalla cartella del progetto,
-   installa_log.txt (e python_msi_log.txt, se c'e')
-6. le foto: la finestra di denoising_live durante la registrazione, i file
-   aperti in WinWCP e ogni messaggio di errore
+Copia sulla chiavetta quella cartella e manda anche le foto: la finestra di
+denoising_live durante la registrazione, i file aperti in WinWCP e ogni
+messaggio di errore.
+
+Cosa c'e' nella cartella (per sapere cosa cercare se va copiato a mano):
+
+1. report_diagnostica.txt, rilevamento_pc.txt, config.ini (e config.ini.bak,
+   se la diagnostica l'ha cambiato), da C:\denoising_live
+2. la cartella log
+3. la cartella dati_registrati: AAMMGG_NNN_raw.wcp, AAMMGG_NNN_filt.wcp,
+   AAMMGG_NNN.json
+4. i file della diagnostica diagnostica_AAMMGG_HHMMSS.wcp e .csv
+5. dalla cartella del progetto: installa_log.txt e python_msi_log.txt
+6. elenco.txt: cosa e' stato copiato e cosa no
 
 Poi riconsegna la chiavetta (o manda i file) a chi ti ha dato questa guida.
 Non serve disinstallare niente; se un giorno servira', c'e' disinstalla.bat

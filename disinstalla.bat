@@ -30,14 +30,14 @@ if exist crea_collegamenti.vbs (
   cscript //nologo crea_collegamenti.vbs /rimuovi
 ) else (
   echo Manca crea_collegamenti.vbs in questa cartella: cancellare a mano dal desktop
-  echo i collegamenti "denoising_live ^(Digidata^)", "Diagnostica Digidata" e
-  echo "denoising_live ^(simulazione^)".
+  echo i collegamenti "denoising_live ^(Digidata^)", "Diagnostica Digidata",
+  echo "denoising_live ^(simulazione^)" e "Raccogli risultati".
 )
 
 echo.
 echo ==== 2/3 File del programma in %DEST% ====
 for %%d in (dlive dll dati_prova __pycache__) do if exist "%DEST%\%%d" rd /s /q "%DEST%\%%d"
-for %%f in (main.py diagnostica_digidata.py avvia.bat avvia_simulazione.bat diagnostica.bat README.md GUIDA_LABORATORIO.txt numpy_verificato.txt config.ini.precedente python_installato_da_denoising_live.txt) do if exist "%DEST%\%%f" del /q "%DEST%\%%f"
+for %%f in (main.py diagnostica_digidata.py avvia.bat avvia_simulazione.bat diagnostica.bat raccogli_risultati.bat README.md GUIDA_RAPIDA.txt GUIDA_COMPLETA.txt GUIDA_LABORATORIO.txt cartella_installazione.txt numpy_verificato.txt config.ini.precedente python_installato_da_denoising_live.txt) do if exist "%DEST%\%%f" del /q "%DEST%\%%f"
 if exist "%DEST%\dlive" echo ATTENZIONE: non riesco a cancellare %DEST%\dlive: chiudere denoising_live e rilanciare.
 rd "%DEST%" 2>nul
 if exist "%DEST%" echo In %DEST% restano dati e configurazione: cancellarli a mano solo se non servono.

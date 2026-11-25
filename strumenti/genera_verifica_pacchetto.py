@@ -21,9 +21,9 @@ INIZIO = "rem ---- INIZIO ELENCO"
 FINE = "rem ---- FINE ELENCO"
 
 # file nella radice usati da installa.bat (o copiati in C:\denoising_live)
-RADICE_FILE = ["installa.bat", "disinstalla.bat", "crea_collegamenti.vbs", "main.py",
+RADICE_FILE = ["prepara.bat", "installa.bat", "disinstalla.bat", "crea_collegamenti.vbs", "main.py",
                "diagnostica_digidata.py", "avvia.bat", "avvia_simulazione.bat", "diagnostica.bat",
-               "README.md", "GUIDA_LABORATORIO.txt"]
+               "raccogli_risultati.bat", "README.md", "GUIDA_RAPIDA.txt", "GUIDA_COMPLETA.txt"]
 # file la cui dimensione non si controlla (si possono modificare)
 SENZA_DIMENSIONE = ["config.ini"]
 # file per Windows: devono avere a capo CRLF ed essere ASCII

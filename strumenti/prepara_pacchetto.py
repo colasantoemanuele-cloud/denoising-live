@@ -9,7 +9,7 @@ verifica_pacchetto.bat e di installa.bat):
     python strumenti/prepara_pacchetto.py [--cartella C]
 
 Serve a chi prepara la cartella su un PC Linux; su Windows si segue
-GUIDA_LABORATORIO.md, parte A.  I due file sono esclusi da git (.gitignore).
+GUIDA_COMPLETA.md, parte A.  I due file sono esclusi da git (.gitignore).
 """
 import argparse
 import os

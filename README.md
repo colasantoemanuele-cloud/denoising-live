@@ -1,18 +1,20 @@
 # denoising_live
 
+> **Sei in laboratorio? Leggi solo questa: [GUIDA_RAPIDA.md](GUIDA_RAPIDA.md)** (una pagina;
+> da stampare o da aprire nel Blocco note: `GUIDA_RAPIDA.txt`).
+
 Acquisizione con **denoising in tempo reale** per il digitalizzatore **Axon Digidata 1322A**
 (PC del laboratorio con Windows XP). Sostituisce WinWCP **solo durante la registrazione**:
 legge l'ingresso analogico 2, filtra il segnale dal vivo, mostra grezzo e filtrato
 sovrapposti e salva **entrambi** in file `.wcp` che WinWCP 5.1.6 apre come i suoi.
 WinWCP resta lo strumento di analisi.
 
-> **Installazione e prima prova in laboratorio: [GUIDA_LABORATORIO.md](GUIDA_LABORATORIO.md)**
-> (passo per passo, per chi va in laboratorio; la stessa guida in testo semplice per il Blocco
-> note di Windows XP è `GUIDA_LABORATORIO.txt`).
+> **Ogni passo spiegato, e cosa fare se qualcosa va storto: [GUIDA_COMPLETA.md](GUIDA_COMPLETA.md)**
+> (anche in `GUIDA_COMPLETA.txt` per il Blocco note di Windows XP).
 
 > **Attenzione: il programma NON è ancora stato provato con il Digidata vero.** È validato in
 > simulazione (§ 11), con una DLL finta e con Python 3.4 a 32 bit; la prima prova con la scheda
-> è quella descritta nella guida.
+> è quella descritta nelle guide.
 
 Due modalità, stesso codice:
 
@@ -132,7 +134,7 @@ nessun controllo esca dalla finestra.
 ### Test
 
 ```bash
-python -m pytest tests --ignore=tests/validazione -q   # ~5 minuti, 303 test
+python -m pytest tests --ignore=tests/validazione -q   # ~5 minuti, 338 test
 DLIVE_TEST_VELOCI=1 python -m pytest tests -q   # senza il test di 3 ore
 vermin -t=3.4- --violations main.py diagnostica_digidata.py dlive
 python strumenti/prestazioni.py     # tempo CPU
@@ -155,9 +157,12 @@ main.py                    avvio (--simulazione / --digidata / chiede)
 diagnostica_digidata.py    diagnostica passo-passo della scheda (da eseguire per prima in lab)
 config.ini                 configurazione commentata in italiano (creata al primo avvio)
 avvia.bat  avvia_simulazione.bat  diagnostica.bat  avvia_simulazione.sh
+prepara.bat                sul PC con internet: scarica i due file e controlla la cartella (§ 3)
 installa.bat  disinstalla.bat  crea_collegamenti.vbs   installazione sul PC del laboratorio (§ 3)
-verifica_pacchetto.bat     controlla la cartella d'installazione (XP e Windows 10/11)
-GUIDA_LABORATORIO.md/.txt  guida passo per passo per la prova in laboratorio
+verifica_pacchetto.bat     controlla la cartella d'installazione (lo chiamano prepara.bat e installa.bat)
+raccogli_risultati.bat     copia sul Desktop i risultati della prova (icona "Raccogli risultati")
+GUIDA_RAPIDA.md/.txt       la prova in laboratorio in una pagina
+GUIDA_COMPLETA.md/.txt     ogni passo spiegato, problemi e rimedi
 .gitattributes             nessuna conversione degli a capo (i .bat restano CRLF anche nel ZIP)
 dlive/
   compat.py                numpy sì/no (percorso veloce o Python puro)
@@ -202,8 +207,9 @@ e l'header ufficiale `riferimenti/sdk_axon/AxDD132x.h`.
 ## 3. Installazione su Windows XP
 
 Non c'è più una cartella `chiavetta/` da preparare: chi va in laboratorio scarica il progetto
-da GitHub (**Code → Download ZIP**), aggiunge **due file scaricati a parte** e copia tutto su
-una chiavetta. Procedura per chi non è esperto: [GUIDA_LABORATORIO.md](GUIDA_LABORATORIO.md).
+da GitHub (**Code → Download ZIP**), fa doppio clic su `prepara.bat`, che scarica **due file
+a parte** e controlla tutto, e copia la cartella su una chiavetta. Procedura per chi non è
+esperto: [GUIDA_RAPIDA.md](GUIDA_RAPIDA.md); dettagli: [GUIDA_COMPLETA.md](GUIDA_COMPLETA.md).
 
 | file da scaricare (nella cartella del progetto) | dimensione | SHA-256 | fonte |
 |---|---|---|---|
@@ -223,9 +229,11 @@ p. 21). Se mancano, gli script lo dicono con il rimedio.
 
 | script | cosa fa |
 |---|---|
-| `verifica_pacchetto.bat` | controlla che nella cartella ci siano i due file scaricati e i 33 file del programma con **nome e dimensione giusti** (le dimensioni le scrive `strumenti/genera_verifica_pacchetto.py`, un test controlla che siano aggiornate); su Windows 10/11 verifica anche lo **SHA-256** con `certutil` (Windows 7: byte separati da spazi; XP non ha `certutil`: lo fa poi `installa.bat`). Riconosce il ZIP non estratto e i file scaricati due volte (`python-3.4.4 (1).msi`). Non modifica nulla; funziona su XP e su Windows 10/11 |
+| `prepara.bat` | **sul PC con internet** (Windows 10/11): scarica i due file con `curl.exe` (o con PowerShell se `curl` non c'è) in `.part` e li rinomina solo se la dimensione è giusta, poi chiama `verifica_pacchetto.bat /prepara`; finisce con `TUTTO A POSTO: copia questa cartella sulla chiavetta` oppure, se il download non riesce, dà i due link da scaricare a mano. Su XP dice che va usato sul PC con internet; se il ZIP non è estratto lo dice |
+| `verifica_pacchetto.bat` | (non serve lanciarlo a mano: lo chiamano `prepara.bat` e `installa.bat`) controlla che nella cartella ci siano i due file scaricati e i 36 file del programma con **nome e dimensione giusti** (le dimensioni le scrive `strumenti/genera_verifica_pacchetto.py`, un test controlla che siano aggiornate); su Windows 10/11 verifica anche lo **SHA-256** con `certutil` (Windows 7: byte separati da spazi; XP non ha `certutil`: lo fa poi `installa.bat`). Riconosce il ZIP non estratto e i file scaricati due volte (`python-3.4.4 (1).msi`). Non modifica nulla; funziona su XP e su Windows 10/11 |
 | `installa.bat` | **rileva** Windows, Service Pack (avvisa sotto XP SP2), 32/64 bit, diritti, spazio su C:, Python già presenti (se è registrato un Python 3.4 fuori da `C:\Python34` usa quello), tutto in `installa_log.txt` → `verifica_pacchetto.bat /installa` → installa Python 3.4.4 in `C:\Python34` (se non c'è già; log in `python_msi_log.txt`; spiega i codici d'errore di msiexec) → controlla che sia 3.4 a 32 bit con tkinter e ctypes → **SHA-256** dei due file con Python (`python -m dlive.pacchetto`) → installa numpy con il pip incluso e **prova a usarlo** (se non funziona lo toglie: il programma userà il percorso senza numpy) → copia il programma in `C:\denoising_live` **conservando un `config.ini` già presente** → tre collegamenti sul desktop → cerca **WinWCP** (`C:\WinWCP*`, `Programmi\WinWCP*`, `Programmi\Strathclyde*\WinWCP*`), **`AxDD132x.dll` e `Axoutils32.dll`** nella sua cartella e **WinASPI** (`wnaspi32.dll`, `aspi32.sys`) → **rilevamento completo** (`python -m dlive.rilevamento`, § 4 passo 1b) in `C:\denoising_live\rilevamento_pc.txt`. Alla fine dice `INSTALLAZIONE COMPLETATA.` oppure quante ATTENZIONI ci sono |
 | `diagnostica.bat` | se manca Python o lo script lo dice; avvisa se WinWCP è aperto; esegue `diagnostica_digidata.py` (§ 4) e riassume l'esito (`ESITO: nessun errore…` / `ci sono errori…`) |
+| `raccogli_risultati.bat` | icona **Raccogli risultati** (la crea `installa.bat`), oppure doppio clic nella cartella del progetto: copia in `risultati_prova_AAMMGG_HHMM` sul Desktop report della diagnostica, `log`, `dati_registrati` (registrazioni e JSON), `diagnostica_*.wcp/.csv`, `rilevamento_pc.txt`, `config.ini` (e `.bak`), `installa_log.txt`, `python_msi_log.txt` e un `elenco.txt`; copia quello che c'è anche se installazione o prova si sono fermate a metà; non cancella nulla. Data e ora da `wmic` (altrimenti dalla data di Windows), Desktop dal registro |
 | `disinstalla.bat` | dalla cartella d'installazione: chiede conferma, toglie i collegamenti e i file del programma, **conserva** `dati_registrati\`, `log\`, `config.ini` e i file della diagnostica, e propone di disinstallare Python **solo se** l'aveva installato `installa.bat` (file `python_installato_da_denoising_live.txt`) |
 
 **Come sono stati provati**: oltre ai test statici (`tests/test_pacchetto.py`: a capo CRLF,
@@ -244,12 +252,12 @@ costruzioni che differiscono (per esempio i caratteri jolly tra virgolette nei `
 
 | dove | cosa | perché |
 |---|---|---|
-| `C:\denoising_live\` | il programma (`dlive\`, `.bat`, `README.md`, `GUIDA_LABORATORIO.txt`, `config.ini`); poi, all'uso, `dati_registrati\`, `log\`, report della diagnostica, `rilevamento_pc.txt` | cartella del programma |
+| `C:\denoising_live\` | il programma (`dlive\`, `.bat`, `README.md`, `GUIDA_RAPIDA.txt`, `GUIDA_COMPLETA.txt`, `config.ini`, `cartella_installazione.txt` con il percorso della cartella del progetto); poi, all'uso, `dati_registrati\`, `log\`, report della diagnostica, `rilevamento_pc.txt` | cartella del programma |
 | `C:\Python34\` | Python 3.4.4, pip 7.1.2 e numpy 1.15.4 (in `Lib\site-packages`) | solo se Python non c'è già; se c'è, vi aggiunge numpy |
 | `C:\WINDOWS\system32\` | `python34.dll` e, **se manca**, `msvcr100.dll` (libreria C Microsoft) | lo fa l'installatore di Python "per tutti gli utenti" (azioni `SetDLLDirToSystem32` e `SharedCRT` dell'MSI); non sostituisce DLL esistenti |
 | registro | `HKLM\Software\Python\PythonCore\3.4` e la voce in *Installazione applicazioni* | registrazione standard di Python (serve anche a disinstallarlo) |
 | menu Start | gruppo "Python 3.4" | creato dall'MSI |
-| desktop dell'utente | tre collegamenti `.lnk` | `crea_collegamenti.vbs` |
+| desktop dell'utente | quattro collegamenti `.lnk` (Digidata, Diagnostica, Raccogli risultati, simulazione); poi la cartella `risultati_prova_…` se si lancia `raccogli_risultati.bat` | `crea_collegamenti.vbs` |
 | cartella d'installazione | `installa_log.txt`, `python_msi_log.txt` | log del rilevamento e dell'installazione di Python |
 
 **Non tocca**: WinWCP e le sue cartelle, le DLL Axon (`AxDD132x.dll` resta dove è), WinASPI,
@@ -290,7 +298,7 @@ Dura ~30 s e scrive `C:\denoising_live\report_diagnostica.txt` con un passo per 
 | 6 | dimensioni delle strutture ctypes (384 / 832 / 256 / 24 byte) |
 | 7 | `DD132X_FindDevices`: nome, firmware, numero di serie della scheda |
 | 8 | apertura, calibrazione (offset ADC/DAC, stato) |
-| 9 | 10 campioni singoli da AI2 e un campione da **tutti** gli ingressi 0–15 (per vedere dove c'è il segnale) |
+| 9 | 10 campioni singoli dall'ingresso di `config.ini` e 5 da **ognuno** degli ingressi 0–15; dice **su quale ingresso c'è il segnale** (mediana o ampiezza oltre 20 conteggi; scollegati ±2) e se coincide con `config.ini`: `segnale trovato sull'ingresso AIn; config.ini usa AIm`. Se il segnale è su **un solo** ingresso diverso chiede `Il segnale arriva sull'ingresso AIn. Vuoi usarlo? (S/N)`: con S cambia solo la riga `canale_ingresso` di `config.ini` (copia in `config.ini.bak`, ASCII con CRLF), lo scrive nel log e nel report e usa quell'ingresso per il passo 10; con N, nessun ingresso o più ingressi non cambia nulla e lo dice |
 | 10 | **10 s a 1000 Hz da AI2**: campioni ricevuti/attesi, persi, coerenza del contatore di posizione; salva `diagnostica_AAMMGG_HHMMSS.csv` e `.wcp`. Se fallisce riprova con le uscite analogiche escluse e lo dice |
 | 11 | media, deviazione standard, saturazioni, RMS per banda (0–2, 2–20, 25–50, 49–51 Hz…), righe più forti, effetto del filtro predefinito |
 
@@ -652,7 +660,7 @@ violazione, minimo richiesto 3.3**. Tutta la suite di test gira in Docker su
 ## 8. Test eseguiti (riepilogo)
 
 * **Validazione oggettiva** (§ 11): 42 voci con soglie fisse, verdetto *PRONTO PER LA PROVA IN LABORATORIO*.
-* **303 test pytest** su Linux (tutti superati; 6 in `tests/test_rapporto_verdetto.py` sul verdetto del rapporto riproducibile; 37 in `tests/test_pacchetto.py` sulla cartella d'installazione, gli script `.bat` anche eseguiti con Wine e `installa.bat` per intero con il vero Python 3.4.4, § 3; 12 in `tests/test_nomi_file.py` sulla numerazione dei file; 71 della fase 5 in `tests/test_fase5.py`: protocollo come WinWCP, `RTIMESECS`, LPF-8, impostazioni di WinWCP, rilevamento sul posto con un ambiente finto, comando di raccolta, `leggi_info_lab.py`) (Python 3.12, numpy 2.5, scipy 1.18, neo 0.14): filtri contro
+* **338 test pytest** su Linux (tutti superati tranne 4 saltati senza display virtuale; 51 in `tests/test_pacchetto.py` sulla cartella d'installazione e sulle guide, con gli script `.bat` eseguiti con Wine e **la guida rapida seguita alla lettera** sotto Wine a 32 bit: `prepara.bat`, `installa.bat` con il vero Python 3.4.4, Diagnostica con la DLL simulata e la domanda sull'ingresso, il programma in modalità Digidata con la DLL simulata (`main.py --finto --prova-gui`), `raccogli_risultati.bat`, § 3; 21 in `tests/test_ingresso_segnale.py` sul passo 9 della diagnostica (ingresso del segnale, domanda S/N, `config.ini` cambiato solo in quella riga e salvato dal Blocco note) e sulle diagnostiche brevi (`--secondi` sotto 2 s); 6 in `tests/test_rapporto_verdetto.py` sul verdetto del rapporto riproducibile; 12 in `tests/test_nomi_file.py` sulla numerazione dei file; 71 della fase 5 in `tests/test_fase5.py`: protocollo come WinWCP, `RTIMESECS`, LPF-8, impostazioni di WinWCP, rilevamento sul posto con un ambiente finto, comando di raccolta, `leggi_info_lab.py`) (Python 3.12, numpy 2.5, scipy 1.18, neo 0.14): filtri contro
   scipy (risposta, notch, poli di Bessel tabulati, sosfilt), attenuazioni, blocchi = colpo
   unico, ritardo/sovraelongazione, cambi dal vivo senza salti, saturazione e picchi,
   decimazione; lettura dei 7 file di prova (con e senza numpy) contro il lettore di
@@ -695,7 +703,10 @@ violazione, minimo richiesto 3.3**. Tutta la suite di test gira in Docker su
   printf 'FROM debian:bookworm-slim\nRUN dpkg --add-architecture i386 && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends wine wine32 wine64 xvfb xauth && rm -rf /var/lib/apt/lists/*\nENV WINEDEBUG=-all WINEARCH=win32 WINEPREFIX=/root/.wine32\nRUN wine wineboot --init; wineserver -w; true\n' > Dockerfile32
   docker build -f Dockerfile32 -t dlive-wine32 .
   ```
-* Diagnostica eseguita con la DLL finta (`python diagnostica_digidata.py --finto`).
+* Diagnostica eseguita con la DLL finta (`python diagnostica_digidata.py --finto`; con
+  `--finto-ingresso N` il segnale c'è solo sull'ingresso N, per provare la domanda del passo 9).
+  Il programma in modalità Digidata con la DLL finta: `python main.py --digidata --finto`
+  (solo per le prove: nessuna scheda vera; con `--prova-gui 15` registra da solo ed esce).
 * **Non testabile senza la scheda**: la DLL vera, WinASPI, il bus SCSI, la temporizzazione
   reale e gli overrun veri, l'apertura dei file in WinWCP 5.1.6 (non ho un Windows con
   WinWCP), il comportamento su XP (Python 3.4 a 32 bit, tkinter su XP, numpy su quella CPU).

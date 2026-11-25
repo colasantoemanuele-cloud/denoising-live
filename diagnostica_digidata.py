@@ -21,13 +21,22 @@ report_diagnostica.txt (da mandare se qualcosa non va):
   11. analisi del rumore e prova del filtro predefinito
 
 Uso:  python diagnostica_digidata.py [--canale 2] [--secondi 10] [--fs 1000]
-      [--dll PERCORSO] [--finto]   (--finto: DLL simulata, solo per provare lo script)
+      [--dll PERCORSO] [--finto [--finto-ingresso N]]
+      (--finto: DLL simulata, solo per provare lo script; --finto-ingresso: con
+      la DLL simulata il segnale c'e' solo sull'ingresso N)
+
+Al passo 9, se il segnale arriva su un solo ingresso diverso da quello di
+config.ini, chiede "Il segnale arriva sull'ingresso AIn. Vuoi usarlo? (S/N)":
+con S aggiorna la riga canale_ingresso di config.ini (copia di prima in
+config.ini.bak) e usa quell'ingresso per il resto della diagnostica.
 """
 import argparse
 import datetime
 import hashlib
 import math
 import os
+import re
+import shutil
 import sys
 import time
 import traceback
@@ -101,7 +110,7 @@ def ingressi_con_segnale(letture, soglia=SOGLIA_SEGNALE):
 def riga_ingresso(trovati, ingresso_config, soglia=SOGLIA_SEGNALE):
     """(esito, testo) per il riepilogo: True = OK, None = AVVISO."""
     rimedio = ("aprire C:\\denoising_live\\config.ini con il Blocco note, scrivere canale_ingresso = %d, "
-               "salvare e rifare la diagnostica (GUIDA_LABORATORIO, B7b)")
+               "salvare e rifare la diagnostica (GUIDA_COMPLETA, B7b)")
     if not trovati:
         return None, ("nessun ingresso con segnale (tutti entro +-%d conteggi); config.ini usa AI%d: "
                       "controllare il cavo dall'LPF-8 al Digidata e che ci sia un segnale"
@@ -120,6 +129,53 @@ def riga_ingresso(trovati, ingresso_config, soglia=SOGLIA_SEGNALE):
     if len(trovati) > 1:
         testo += " (segnale anche su %s)" % ", ".join("AI%d" % c for c in trovati[1:])
     return None, testo + ": " + rimedio % trovati[0]
+
+
+SI = ("s", "si", "s\u00ec", "y", "yes")
+
+
+def chiedi_si_no(domanda, leggi=None):
+    """(si', risposta).  Senza tastiera (fine dell'input) vale come No."""
+    leggi = leggi or input
+    try:
+        r = leggi(domanda)
+    except (EOFError, KeyboardInterrupt, OSError, RuntimeError):
+        return False, ""
+    r = (r or "").strip()
+    return r.lower() in SI, r
+
+
+def aggiorna_ingresso_config(percorso, nuovo):
+    """Cambia SOLO la riga canale_ingresso di config.ini (la aggiunge sotto
+    [digidata] se manca), a capo CRLF, dopo averne fatto una copia in
+    config.ini.bak.  Restituisce il valore di prima ("" se la riga mancava)."""
+    with open(percorso, "rb") as f:
+        dati = f.read()
+    shutil.copy2(percorso, percorso + ".bak")
+    righe = dati.replace(b"\r\n", b"\n").split(b"\n")
+    nuova = ("canale_ingresso = %d" % int(nuovo)).encode("ascii")
+    rx = re.compile(br"^\s*canale_ingresso\s*[=:]\s*(.*?)\s*$")
+    vecchio = None
+    for i, r in enumerate(righe):
+        m = rx.match(r)
+        if m:
+            vecchio = m.group(1).decode("ascii", "replace")
+            righe[i] = nuova
+            break
+    if vecchio is None:
+        vecchio = ""
+        sez = [i for i, r in enumerate(righe) if r.strip().lower() == b"[digidata]"]
+        if sez:
+            righe.insert(sez[0] + 1, nuova)
+        else:
+            if righe and righe[-1] == b"":
+                righe.pop()
+            righe += [b"", b"[digidata]", nuova, b""]
+    tmp = percorso + ".tmp"
+    with open(tmp, "wb") as f:
+        f.write(b"\r\n".join(righe))
+    os.replace(tmp, percorso)
+    return vecchio
 
 
 def md5(percorso):
@@ -147,6 +203,8 @@ def main(argv=None):
     ap.add_argument("--fs", type=float, default=1000.0)
     ap.add_argument("--dll", default=None)
     ap.add_argument("--finto", action="store_true", help="usa la DLL simulata (prova dello script)")
+    ap.add_argument("--finto-ingresso", type=int, default=None,
+                    help="con --finto: il segnale c'e' solo su questo ingresso (prova della domanda del passo 9)")
     ap.add_argument("--uscita", default=QUI, help="cartella per report, CSV e .wcp")
     args = ap.parse_args(argv)
 
@@ -246,7 +304,9 @@ def main(argv=None):
 
     # ------------------------------------------------------------------ 3
     rep.passo(3, "Driver WinASPI (il Digidata 1322A comunica via SCSI/ASPI)")
-    if compat.SU_WINDOWS:
+    if args.finto:
+        rep.esito(3, None, "saltato: con la DLL simulata (--finto) WinASPI non serve")
+    elif compat.SU_WINDOWS:
         windir = os.environ.get("SystemRoot", r"C:\WINDOWS")
         for p in (os.path.join(windir, "system32", "wnaspi32.dll"),
                   os.path.join(windir, "system32", "drivers", "aspi32.sys"),
@@ -291,7 +351,7 @@ def main(argv=None):
     librerie = []
     if args.finto:
         from dlive.devices.dd132x_finto import LibreriaFinta
-        librerie.append(("<finta>", LibreriaFinta()))
+        librerie.append(("<finta>", LibreriaFinta(ingresso_segnale=args.finto_ingresso)))
         rep.esito(5, True, "DLL finta caricata")
     else:
         cand = dd.percorsi_candidati_dll(dll_cfg, QUI)
@@ -401,8 +461,10 @@ def main(argv=None):
             rep.scrivi("  AI%-2d = %6d conteggi = %8.1f mV   (min %d, max %d su %d letture)"
                        % (ch, med, med * conv, min(v), max(v), len(v)))
         rep.esito(9, True, "lettura singola riuscita")
-        esito_ing, testo_ing = riga_ingresso(ingressi_con_segnale(letture), cfg["digidata.canale_ingresso"])
-        rep.esito(9, esito_ing, testo_ing)
+        nuovo = _ingresso_del_segnale(rep, cfg, letture)
+        if nuovo is not None:
+            canale = nuovo
+            dev.canale = nuovo                 # il passo 10 acquisisce dall'ingresso scelto
     except Exception as ex:
         rep.esito(9, None, "lettura singola non riuscita (%s); si prova comunque l'acquisizione" % ex)
 
@@ -458,6 +520,48 @@ def main(argv=None):
     return _riepilogo(rep, cfg)
 
 
+def _ingresso_del_segnale(rep, cfg, letture):
+    """Passo 9: dice dove c'e' il segnale; se e' su un solo ingresso diverso da
+    config.ini chiede se usarlo e, con S, aggiorna config.ini.  Restituisce il
+    nuovo ingresso, o None se config.ini non e' cambiato."""
+    import logging
+    log = logging.getLogger("dlive")
+    attuale = cfg["digidata.canale_ingresso"]
+    trovati = ingressi_con_segnale(letture)
+    if not (len(trovati) == 1 and trovati[0] != attuale):
+        esito, testo = riga_ingresso(trovati, attuale)
+        rep.esito(9, esito, testo + ("" if esito else "; config.ini non cambiato"))
+        return None
+    n = trovati[0]
+    rep.scrivi("")
+    rep.scrivi("*" * 72)
+    rep.scrivi("Il segnale arriva sull'ingresso AI%d. Vuoi usarlo? (S/N)" % n)
+    rep.scrivi("(adesso il programma e' impostato sull'ingresso AI%d, dove non c'e' segnale)" % attuale)
+    rep.scrivi("*" * 72)
+    si, risposta = chiedi_si_no("Scrivi S oppure N e premi Invio: ")
+    rep.scrivi("Risposta: %s" % (risposta or "(nessuna)"))
+    if not si:
+        log.info("Passo 9: segnale su AI%d, config.ini usa AI%d; risposta %r: config.ini non cambiato",
+                 n, attuale, risposta)
+        _, testo = riga_ingresso(trovati, attuale)
+        rep.esito(9, None, "risposta N, config.ini non cambiato: " + testo)
+        return None
+    try:
+        vecchio = aggiorna_ingresso_config(cfg.percorso, n)
+    except (IOError, OSError) as e:
+        log.error("Passo 9: aggiornamento di config.ini non riuscito: %s", e)
+        _, testo = riga_ingresso(trovati, attuale)
+        rep.esito(9, False, "config.ini NON aggiornato (%s): " % e + testo)
+        return None
+    cfg.imposta("digidata.canale_ingresso", n)
+    log.info("Passo 9: config.ini aggiornato: canale_ingresso %s -> %d (copia di prima in %s.bak)",
+             vecchio or "(assente)", n, cfg.percorso)
+    rep.esito(9, True, "config.ini aggiornato: ora il programma usa l'ingresso AI%d (prima AI%s; "
+                       "copia di prima in config.ini.bak)" % (n, vecchio or "?"))
+    rep.scrivi("Fatto: d'ora in poi il programma legge l'ingresso AI%d." % n)
+    return n
+
+
 def _hklm():
     import winreg
     return winreg.HKEY_LOCAL_MACHINE
@@ -510,10 +614,15 @@ def _analisi(rep, dati, fs, conv, cfg):
     par = filters.ParametriFiltro(cfg["filtro.tipo"], cfg["filtro.ordine"], cfg["filtro.taglio_hz"],
                                   cfg.notch(), cfg["filtro.q_notch"])
     y = filters.filtra_causale(par, x, fs)
-    coda = y[int(fs):]
+    # si salta il primo secondo (assestamento del filtro); con registrazioni di
+    # 2 s o meno si salta solo la prima meta', cosi' la coda non e' mai vuota
+    salto = int(fs) if n > 2 * int(fs) else n // 2
+    coda = y[salto:]
     mf = sum(coda) / len(coda)
     sdf = math.sqrt(sum((v - mf) ** 2 for v in coda) / len(coda))
-    rep.scrivi("Dopo il filtro predefinito (%s): deviazione standard %.2f mV" % (par.descrizione(), sdf))
+    rep.scrivi("Dopo il filtro predefinito (%s): deviazione standard %.2f mV%s" % (
+        par.descrizione(), sdf, "" if salto == int(fs) else
+        " (registrazione breve: calcolata sugli ultimi %d campioni)" % len(coda)))
     np = compat.np
     if np is not None and n > 256:
         a = np.asarray(x) - m

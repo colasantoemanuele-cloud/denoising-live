@@ -6,7 +6,8 @@ rem  Si lancia con doppio clic dalla cartella del progetto, che deve
 rem  contenere anche i due file scaricati a parte:
 rem      python-3.4.4.msi
 rem      numpy-1.15.4-cp34-none-win32.whl
-rem  (GUIDA_LABORATORIO.txt, parte A; controllo: verifica_pacchetto.bat).
+rem  (li scarica prepara.bat sul PC con internet: GUIDA_RAPIDA.txt).
+rem  Controlla la cartella con verifica_pacchetto.bat: non serve lanciarlo a mano.
 rem  La DLL Axon (AxDD132x.dll, Axoutils32.dll) NON e' inclusa: si usa
 rem  quella di WinWCP gia' installato.  WinASPI e il driver SCSI vengono
 rem  dall'installazione di AxoScope.
@@ -85,8 +86,8 @@ if not exist "verifica_pacchetto.bat" (
 )
 call "%~dp0verifica_pacchetto.bat" /installa
 if errorlevel 1 (
-  echo Rimedio: sul PC con internet seguire GUIDA_LABORATORIO.txt, parte A,
-  echo finche' verifica_pacchetto.bat dice TUTTO A POSTO; poi ricopiare la cartella.
+  echo Rimedio: sul PC con internet fare doppio clic su prepara.bat finche' dice
+  echo TUTTO A POSTO, poi ricopiare la cartella ^(GUIDA_RAPIDA.txt, passi 1-3^).
   goto errore
 )
 >> "%LOG%" echo Cartella completa
@@ -113,8 +114,8 @@ echo ERRORE: l'installazione di Python non e' riuscita (msiexec, codice %RC%).
 if "%RC%"=="1602" echo   Installazione annullata: rilanciare installa.bat e lasciarla finire.
 if "%RC%"=="1603" echo   Errore durante l'installazione: dettagli in python_msi_log.txt, in questa cartella.
 if "%RC%"=="1618" echo   C'e' gia' un'altra installazione in corso: attenderne la fine o riavviare il PC, poi rilanciare.
-if "%RC%"=="1619" echo   python-3.4.4.msi non si apre: e' danneggiato. Scaricarlo di nuovo (GUIDA_LABORATORIO.txt, parte A).
-if "%RC%"=="1620" echo   python-3.4.4.msi non si apre: e' danneggiato. Scaricarlo di nuovo (GUIDA_LABORATORIO.txt, parte A).
+if "%RC%"=="1619" echo   python-3.4.4.msi non si apre: e' danneggiato. Scaricarlo di nuovo (GUIDA_COMPLETA.txt, parte A).
+if "%RC%"=="1620" echo   python-3.4.4.msi non si apre: e' danneggiato. Scaricarlo di nuovo (GUIDA_COMPLETA.txt, parte A).
 if "%RC%"=="1625" echo   Windows non permette l'installazione a questo utente: usare un utente amministratore.
 echo   Il dettaglio completo e' in python_msi_log.txt, in questa cartella: mandarlo.
 goto errore
@@ -142,7 +143,7 @@ echo.
 echo ==== 3/8 Verifica degli SHA-256 dei file scaricati ====
 "%PYDIR%\python.exe" -m dlive.pacchetto
 if errorlevel 1 (
-  echo Rimedio: riscaricare i file indicati sul PC con internet ^(GUIDA_LABORATORIO.txt, parte A^).
+  echo Rimedio: riscaricare i file indicati sul PC con internet ^(GUIDA_COMPLETA.txt, parte A^).
   goto errore
 )
 
@@ -168,7 +169,7 @@ if not exist "%DEST%" (
   goto errore
 )
 set COPIA_OK=1
-for %%f in (main.py diagnostica_digidata.py avvia.bat avvia_simulazione.bat diagnostica.bat README.md GUIDA_LABORATORIO.txt) do (
+for %%f in (main.py diagnostica_digidata.py avvia.bat avvia_simulazione.bat diagnostica.bat raccogli_risultati.bat README.md GUIDA_RAPIDA.txt GUIDA_COMPLETA.txt) do (
   copy /y "%%f" "%DEST%\" >nul
   if errorlevel 1 echo   copia non riuscita: %%f
   if errorlevel 1 set COPIA_OK=0
@@ -187,6 +188,8 @@ if exist "%DEST%\config.ini" (
 )
 if exist "%DEST%\numpy_verificato.txt" del "%DEST%\numpy_verificato.txt"
 if "%PY_NOSTRO%"=="1" echo Python 3.4.4 installato da installa.bat il %DATE% > "%DEST%\python_installato_da_denoising_live.txt"
+rem per raccogli_risultati.bat: dove sono installa_log.txt e python_msi_log.txt
+> "%DEST%\cartella_installazione.txt" echo %~dp0
 echo Programma copiato in %DEST%
 
 echo.

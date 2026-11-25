@@ -35,7 +35,7 @@ def _obj(arg):
 
 class LibreriaFinta(object):
     def __init__(self, segnale_mv=None, rumore_mv=2.0, trovato=True, apribile=True,
-                 blocco_dopo_s=None, posizione_scala=1.0):
+                 blocco_dopo_s=None, posizione_scala=1.0, ingresso_segnale=None):
         self.percorso = "<DLL finta per i test>"
         self.note = ["DLL finta (test)"]
         self.mancanti = []
@@ -45,6 +45,9 @@ class LibreriaFinta(object):
         self.apribile = apribile
         self.blocco_dopo_s = blocco_dopo_s       # simula un PC che smette di leggere
         self.posizione_scala = posizione_scala   # per simulare un contatore "strano"
+        # None = segnale su tutti gli ingressi; N = segnale solo sull'ingresso N
+        # nelle letture singole (GetAIValue), gli altri restano a +-2 conteggi
+        self.ingresso_segnale = ingresso_segnale
         self.protocollo = None
         self.acquisisce = False
         self.scritti = 0
@@ -160,7 +163,10 @@ class LibreriaFinta(object):
         return 1
 
     def _DD132X_GetAIValue(self, h, canale, pv, perr):
-        _obj(pv).value = self._campione(time.time())
+        if self.ingresso_segnale is not None and canale != self.ingresso_segnale:
+            _obj(pv).value = random.choice((-2, 0, 0, 2))        # ingresso scollegato
+        else:
+            _obj(pv).value = self._campione(time.time())
         return 1
 
     def _DD132X_GetLastErrorText(self, h, buf, n, perr):

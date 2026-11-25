@@ -22,8 +22,9 @@ import genera_guida_txt  # noqa: E402
 import genera_verifica_pacchetto as GV  # noqa: E402
 from dlive import pacchetto  # noqa: E402
 
-BAT = ["installa.bat", "disinstalla.bat", "diagnostica.bat", "verifica_pacchetto.bat", "avvia.bat",
-       "avvia_simulazione.bat"]
+BAT = ["prepara.bat", "installa.bat", "disinstalla.bat", "diagnostica.bat", "verifica_pacchetto.bat",
+       "avvia.bat", "avvia_simulazione.bat", "raccogli_risultati.bat"]
+GUIDE = ["GUIDA_RAPIDA", "GUIDA_COMPLETA"]
 
 
 def _leggi(nome):
@@ -35,7 +36,7 @@ def _leggi(nome):
 def test_file_windows_crlf_e_ascii():
     voci = GV.file_windows(RADICE)
     nomi = [os.path.basename(p) for p in voci]
-    for n in BAT + ["crea_collegamenti.vbs", "GUIDA_LABORATORIO.txt", "comandi_da_incollare.txt"]:
+    for n in BAT + ["crea_collegamenti.vbs", "GUIDA_RAPIDA.txt", "GUIDA_COMPLETA.txt", "comandi_da_incollare.txt"]:
         assert n in nomi, n
     for p in voci:
         b = open(p, "rb").read()
@@ -68,17 +69,24 @@ def test_installa_copia_solo_file_controllati():
     for f in copiati + ["config.ini", "crea_collegamenti.vbs", "verifica_pacchetto.bat"]:
         assert os.path.isfile(os.path.join(RADICE, f)), f
         assert f in voci or f == "verifica_pacchetto.bat", f
-    # disinstalla toglie gli stessi file
+    for f in ("raccogli_risultati.bat", "GUIDA_RAPIDA.txt", "GUIDA_COMPLETA.txt"):
+        assert f in copiati, f
+    assert "cartella_installazione.txt" in t
+    # disinstalla toglie gli stessi file (e l'icona Raccogli risultati con gli altri collegamenti)
     d = _leggi("disinstalla.bat").decode("ascii")
-    for f in copiati:
+    for f in copiati + ["cartella_installazione.txt"]:
         assert f in d, f
+    v = _leggi("crea_collegamenti.vbs").decode("ascii")
+    assert '"Raccogli risultati", "raccogli_risultati.bat"' in v
 
 
 def test_file_scaricati_coerenti_ovunque():
     bat = _leggi("verifica_pacchetto.bat").decode("ascii")
     installa = _leggi("installa.bat").decode("ascii")
-    guida = _leggi("GUIDA_LABORATORIO.md").decode("utf-8")
+    guida = _leggi("GUIDA_COMPLETA.md").decode("utf-8")
+    prepara = _leggi("prepara.bat").decode("ascii")
     for nome, dim, h, url, pagina in pacchetto.SCARICAMENTI:
+        assert nome in prepara and url in prepara and str(dim) in prepara
         assert 'call :scaricato "%s" %d %s "%s"' % (nome, dim, h, url) in bat
         assert nome in installa
         assert nome in guida and url in guida and pagina in guida
@@ -189,69 +197,118 @@ def test_pacchetto_veri_se_presenti():
         assert os.path.getsize(p) == dim and pacchetto.sha256(p) == h
 
 
-# ---------------------------------------------------------------- guida
-def test_guida_txt_aggiornata_e_leggibile():
-    with io.open(os.path.join(RADICE, "GUIDA_LABORATORIO.md"), encoding="utf-8") as f:
+# ---------------------------------------------------------------- guide
+SORGENTI = BAT + ["crea_collegamenti.vbs", "main.py", "diagnostica_digidata.py", "dlive/gui.py",
+                  "dlive/acquisizione.py", "dlive/devices/digidata.py", "dlive/sysinfo.py", "dlive/recorder.py"]
+
+
+def _sorgenti():
+    return "\n".join(_leggi(n).decode("utf-8", "replace") for n in SORGENTI)
+
+
+@pytest.mark.parametrize("nome", GUIDE)
+def test_guide_txt_aggiornate_e_leggibili(nome):
+    with io.open(os.path.join(RADICE, nome + ".md"), encoding="utf-8") as f:
         atteso = genera_guida_txt.converti(f.read())
-    assert _leggi("GUIDA_LABORATORIO.txt").decode("ascii") == atteso, \
-        "lanciare python strumenti/genera_guida_txt.py"
+    assert _leggi(nome + ".txt").decode("ascii") == atteso, "lanciare python strumenti/genera_guida_txt.py"
     for riga in atteso.split("\r\n"):
         assert len(riga) <= 78 or "://" in riga, riga
 
 
-def test_guida_coincide_con_script_e_finestra():
-    guida = _leggi("GUIDA_LABORATORIO.md").decode("utf-8")
-    sorgenti = "\n".join(_leggi(n).decode("utf-8", "replace") for n in
-                         BAT + ["crea_collegamenti.vbs", "main.py", "diagnostica_digidata.py",
-                                "dlive/gui.py", "dlive/acquisizione.py", "dlive/devices/digidata.py",
-                                "dlive/sysinfo.py", "dlive/recorder.py"])
-    # ogni script nominato esiste
-    for s in set(re.findall(r"\b(\w+\.bat)\b", guida)):
-        assert os.path.isfile(os.path.join(RADICE, s)), s
-    # pulsanti, campi, icone e messaggi citati dalla guida esistono davvero
+def conta_guida_rapida():
+    md = _leggi("GUIDA_RAPIDA.md").decode("utf-8")
+    txt = _leggi("GUIDA_RAPIDA.txt").decode("ascii")
+    return {"righe_md": len(md.splitlines()), "righe_txt": txt.count("\r\n"), "parole": len(md.split())}
+
+
+def test_guida_rapida_una_pagina_senza_parole_tecniche():
+    c = conta_guida_rapida()
+    assert c["righe_md"] <= 45 and c["righe_txt"] <= 50 and c["parole"] <= 350, c
+    g = _leggi("GUIDA_RAPIDA.md").decode("utf-8")
+    for vietata in ("DLL", "SHA", "config.ini", "canale", "codifica", "WinASPI", "Python", "numpy"):
+        assert vietata.lower() not in g.lower(), vietata
+    passi = re.findall(r"^(\d+)\. ", g, re.M)
+    assert passi == [str(i) for i in range(1, 13)], passi
+    assert "github.com/colasantoemanuele-cloud/denoising-live" in g
+    fondo = g.split("## Se qualcosa va storto")[1]
+    assert "Raccogli risultati" in fondo and "raccogli_risultati.bat" in fondo and "GUIDA_COMPLETA" in fondo
+
+
+def test_guida_rapida_scritte_vere():
+    """Ogni scritta tra `...` della guida rapida esiste davvero (script o finestra),
+    ogni nome in grassetto e' un pulsante, un'icona o uno script veri."""
+    g = _leggi("GUIDA_RAPIDA.md").decode("utf-8")
+    src = _sorgenti()
+    for t in re.findall(r"`([^`]+)`", g):
+        if t.endswith((".bat", ".wcp")) or t.startswith("C:\\") or t in ("S", "prova"):
+            continue
+        t = t.replace("...", "").replace("risultati_prova_", "%NOME%")     # nome con data e ora
+        assert t in src, t
+    for b in re.findall(r"\*\*([^*]+)\*\*", g):
+        if b in ("Code", "Download ZIP", "Estrai tutto", "Ulteriori informazioni", "Esegui comunque"):
+            continue                                   # pulsanti di GitHub e di Windows
+        if b.endswith(".bat"):
+            assert os.path.isfile(os.path.join(RADICE, b)), b
+            continue
+        b = {"Marker": "Marker:"}.get(b, b)
+        assert b in src, b
+    for s_ in re.findall(r"\b(\w+\.bat)\b", g):
+        assert os.path.isfile(os.path.join(RADICE, s_)), s_
+
+
+def test_guida_completa_coincide_con_script_e_finestra():
+    guida = _leggi("GUIDA_COMPLETA.md").decode("utf-8")
+    sorgenti = _sorgenti()
+    for s_ in set(re.findall(r"\b(\w+\.bat)\b", guida)):
+        assert os.path.isfile(os.path.join(RADICE, s_)), s_
     citati = [
         "Avvia anteprima", "Avvia registrazione", "Ferma", "Aggiungi marker", "Marker:",
         "Aggiornamento (Hz)", "Taglio LPF-8 (Hz)", "Applica", "Filtrato attuale", "Grafico",
-        "denoising_live (Digidata)", "Diagnostica Digidata", "denoising_live (simulazione)",
+        "denoising_live (Digidata)", "Diagnostica Digidata", "denoising_live (simulazione)", "Raccogli risultati",
         "denoising_live - %s", "DIGIDATA 1322A", "Persi: %d", "REGISTRAZIONE", "anteprima",
         "Impostazioni di WinWCP", "Scheda occupata", "Driver Digidata", "Campioni persi",
         "Nessun Digidata trovato", "e' gia' in uso da", "Fermare la registrazione in corso?",
-        "TUTTO A POSTO: la cartella e' completa.", "SHA-256 verificato", "file del programma, tutti con la "
-        "dimensione giusta", "NON TROVO I FILE DEL PROGRAMMA", "MANCA ", "DIMENSIONE ERRATA", "SHA-256 ERRATO",
-        "INSTALLAZIONE COMPLETATA.", "INSTALLAZIONE COMPLETATA, MA CI SONO", "INSTALLAZIONE INTERROTTA",
-        "AxDD132x.dll: presente", "Axoutils32.dll: presente", "WinASPI: presente", "WinWCP: %WCPDIR%",
-        "WinWCP non trovato", "manca AxDD132x.dll", "manca Axoutils32.dll", "WinASPI non installato",
-        "numpy non funziona su questo PC", "Python 3.4 non trovato", "WinWCP e' aperto",
+        "TUTTO A POSTO: copia questa cartella sulla chiavetta", "Download non riuscito",
+        "C'e' un problema nella cartella", "NON TROVO I FILE DEL PROGRAMMA", "MANCA ", "DIMENSIONE ERRATA",
+        "SHA-256 ERRATO", "INSTALLAZIONE COMPLETATA.", "INSTALLAZIONE COMPLETATA, MA CI SONO",
+        "INSTALLAZIONE INTERROTTA", "AxDD132x.dll: presente", "Axoutils32.dll: presente", "WinASPI: presente",
+        "WinWCP: %WCPDIR%", "WinWCP non trovato", "manca AxDD132x.dll", "manca Axoutils32.dll",
+        "WinASPI non installato", "numpy non funziona su questo PC", "Python 3.4 non trovato", "WinWCP e' aperto",
         "ESITO: nessun errore. Si puo' passare all'anteprima ^(avvia.bat^).", "ESITO: ci sono errori",
         "Nessun errore: si puo' passare all'anteprima (avvia.bat).", "RIEPILOGO", "WinASPI funziona",
         "Digidata trovato con", "ricevuti %d campioni su %d attesi", "WinASPI non funziona",
         "nessuna AxDD132x.dll trovata", "nessuna copia caricabile", "Digidata non trovato",
-        "installa_log.txt", "python_msi_log.txt", "rilevamento_pc.txt", "report_diagnostica.txt",
-        "dati_registrati", "Python puro", "M:", "_raw", "_filt", ".json",
+        "installa_log.txt", "python_msi_log.txt", "rilevamento_pc.txt", "report_diagnostica.txt", "elenco.txt",
+        "dati_registrati", "Python puro", "M:", "_raw", "_filt", ".json", "config.ini.bak",
         "segnale trovato sull'ingresso AI", "config.ini usa AI", "nessun ingresso con segnale",
-        "segnale su piu' ingressi", "canale_ingresso", "PASSO %s",
+        "segnale su piu' ingressi", "canale_ingresso", "PASSO %s", "Vuoi usarlo? (S/N)",
+        "Il segnale arriva sull'ingresso AI%d. Vuoi usarlo? (S/N)",
+        "config.ini aggiornato: ora il programma usa l'ingresso AI%d", "risultati_prova_",
+        "Copia sulla chiavetta la cartella %NOME% dal Desktop.",
     ]
     for c in citati:
         assert c in sorgenti or c in _leggi("config.ini").decode("utf-8"), c
-    # e la guida li cita davvero (stesse parole)
     for c in ("Avvia anteprima", "Avvia registrazione", "Aggiungi marker", "Aggiornamento (Hz)",
-              "TUTTO A POSTO: la cartella e' completa.", "INSTALLAZIONE COMPLETATA.",
+              "TUTTO A POSTO: copia questa cartella sulla chiavetta", "INSTALLAZIONE COMPLETATA.",
               "ESITO: nessun errore. Si puo' passare all'anteprima (avvia.bat).",
               "Nessun errore: si puo' passare all'anteprima (avvia.bat).", "report_diagnostica.txt",
-              "denoising_live (Digidata)", "Diagnostica Digidata", "verifica_pacchetto.bat", "installa.bat"):
+              "denoising_live (Digidata)", "Diagnostica Digidata", "Raccogli risultati", "prepara.bat",
+              "installa.bat", "raccogli_risultati.bat", "Il segnale arriva sull'ingresso AI4. Vuoi usarlo? (S/N)",
+              "config.ini aggiornato: ora il programma usa l'ingresso AI4", "Copia sulla chiavetta la cartella",
+              "GUIDA_RAPIDA.md"):
         assert c in guida, c
     assert "non è mai stato provato con il Digidata vero" in guida
-    # ingresso del segnale (B7b) e controllo di WinWCP prima di installare (B0)
-    for c in ("segnale trovato sull'ingresso AI4; config.ini usa AI2", "canale_ingresso = 4",
-              "C:\\denoising_live\\config.ini", "**File → Salva**", "**B0.", "**B7b.",
-              "nessun ingresso con segnale", "segnale su piu' ingressi"):
+    # ripiego a mano con il Blocco note, B0 prima di B1, B7b prima di B8
+    for c in ("canale_ingresso = 4", "**File → Salva**", "**B0.", "**B7b.", "**A3b."):
         assert c in guida, c
     assert guida.index("**B0.") < guida.index("**B1.") and guida.index("**B7b.") < guida.index("**B8.")
 
 
-def test_readme_rimanda_alla_guida():
+def test_readme_rimanda_alle_guide():
     r = _leggi("README.md").decode("utf-8")
-    assert "GUIDA_LABORATORIO.md" in r.split("\n## ")[0]
+    prima = [x for x in r.splitlines() if x.strip()][1]
+    assert prima.startswith("> **Sei in laboratorio? Leggi solo questa: [GUIDA_RAPIDA.md](GUIDA_RAPIDA.md)**"), prima
+    assert "GUIDA_COMPLETA.md" in r.split("\n## ")[0] and "GUIDA_LABORATORIO" not in r
     assert "NON è ancora stato provato con il Digidata vero" in r
 
 
@@ -384,7 +441,7 @@ def test_wine_installa_si_ferma_se_manca_un_file(cartella_reale):
     codice, t = _esegui_bat(str(cartella_reale), "installa.bat")
     assert codice == 1, t
     assert "MANCA python-3.4.4.msi" in t and "INSTALLAZIONE INTERROTTA" in t
-    assert "GUIDA_LABORATORIO.txt, parte A" in t
+    assert "prepara.bat" in t and "GUIDA_RAPIDA.txt" in t
     assert "Installo Python" not in t
 
 
@@ -400,21 +457,145 @@ def test_wine_disinstalla_senza_installazione(cartella_reale):
     assert codice == 0 and "non risulta installato" in t and "Fine." in t
 
 
-# ---------------------------------------------------------------- installazione vera (Wine a 32 bit)
+# ---------------------------------------------------------------- prepara.bat e raccogli_risultati.bat
+CURL_FINTO = (b'@echo off\r\nrem curl finto per i test: %1-%5 opzioni, %6=-o, %7=file, %8=indirizzo\r\n'
+              b'if "%~1"=="--version" exit /b 0\r\n'
+              b'if not exist "Z:\\w\\scaricati\\%~nx8" exit /b 22\r\n'
+              b'copy /y "Z:\\w\\scaricati\\%~nx8" "%~7" >nul\r\n')
+
+
+def _cartella_progetto(tmp_path, con_scaricati=False):
+    """tmp_path/w/progetto: i file del programma (senza i due file da scaricare);
+    tmp_path/w/scaricati: i due file 'su internet' (finti, dimensione giusta)."""
+    w = tmp_path / "w"
+    c = w / "progetto"
+    for rel, _ in pacchetto.elenco_programma(RADICE):
+        dst = c.joinpath(*rel.split("/"))
+        if not dst.parent.exists():
+            dst.parent.mkdir(parents=True)
+        shutil.copy(os.path.join(RADICE, *rel.split("/")), str(dst))
+    shutil.copy(os.path.join(RADICE, "verifica_pacchetto.bat"), str(c))
+    (w / "scaricati").mkdir()
+    if con_scaricati:
+        for nome, dim, *_ in pacchetto.SCARICAMENTI:
+            (w / "scaricati" / nome).write_bytes(b"\0" * dim)
+    return w, c
+
+
+def _wine(w, comandi, immagine=None, timeout=300):
+    out = subprocess.run(["docker", "run", "--rm", "-i", "-v", "%s:/w" % w, immagine or IMMAGINE_WINE, "bash",
+                          "-c", comandi + "; chmod -R a+rwX /w"],
+                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=timeout).stdout
+    return out.decode("ascii", "replace").replace("\r", "")
+
+
+@richiede_wine
+def test_wine_prepara_scarica_e_controlla(tmp_path):
+    w, c = _cartella_progetto(tmp_path, con_scaricati=True)
+    (c / "curl.bat").write_bytes(CURL_FINTO)
+    # i file finti hanno la dimensione giusta ma non lo SHA-256: certutil simulato che risponde giusto
+    righe = ["@echo off", "echo Hash SHA256 di %2:"]
+    righe += ['if "%%~2"=="%s" echo %s' % (n, h) for n, _, h, *_ in pacchetto.SCARICAMENTI]
+    (c / "certutil.bat").write_bytes(("\r\n".join(righe) + "\r\n").encode("ascii"))
+    t = _wine(str(w), 'cd /w/progetto && printf "\\r\\n" | /usr/lib/wine/wine64 cmd /c prepara.bat 2>/dev/null; '
+                      'echo "@@codice=$?"')
+    assert "scaricato: python-3.4.4.msi" in t and "scaricato: numpy-1.15.4-cp34-none-win32.whl" in t, t
+    assert "TUTTO A POSTO: copia questa cartella sulla chiavetta" in t and "@@codice=0" in t
+    assert t.count("SHA-256 verificato") == 2
+    for nome, dim, *_ in pacchetto.SCARICAMENTI:
+        assert os.path.getsize(str(c / nome)) == dim and not os.path.exists(str(c / (nome + ".part")))
+    # seconda volta: i file ci sono gia' e non si riscaricano
+    t = _wine(str(w), 'cd /w/progetto && printf "\\r\\n" | /usr/lib/wine/wine64 cmd /c prepara.bat 2>/dev/null')
+    assert t.count("gia' presente:") == 2 and "TUTTO A POSTO: copia questa cartella sulla chiavetta" in t
+
+
+@richiede_wine
+def test_wine_prepara_download_non_riuscito(tmp_path):
+    w, c = _cartella_progetto(tmp_path, con_scaricati=False)      # "internet" vuoto: curl fallisce
+    (c / "curl.bat").write_bytes(CURL_FINTO)
+    t = _wine(str(w), 'cd /w/progetto && printf "\\r\\n" | /usr/lib/wine/wine64 cmd /c prepara.bat 2>/dev/null; '
+                      'echo "@@codice=$?"')
+    assert "NON riuscito: python-3.4.4.msi" in t and "Download non riuscito" in t, t
+    for nome, _, _, url, _ in pacchetto.SCARICAMENTI:
+        assert url in t
+    assert "@@codice=1" in t and "TUTTO A POSTO" not in t
+
+
+@richiede_wine
+def test_wine_prepara_senza_curl_ne_powershell(tmp_path):
+    w, c = _cartella_progetto(tmp_path)                          # Wine non ha ne' curl ne' PowerShell
+    t = _wine(str(w), 'cd /w/progetto && printf "\\r\\n" | /usr/lib/wine/wine64 cmd /c prepara.bat 2>/dev/null')
+    assert "Download non riuscito" in t and "rilancia prepara.bat" in t, t
+
+
+@richiede_wine
+def test_wine_prepara_zip_non_estratto(tmp_path):
+    shutil.copy(os.path.join(RADICE, "prepara.bat"), str(tmp_path))
+    codice, t = _esegui_bat(str(tmp_path), "prepara.bat")
+    assert codice == 1 and "NON TROVO I FILE DEL PROGRAMMA" in t and "Estrai tutto" in t
+
+
+def test_prepara_usa_curl_o_powershell():
+    t = _leggi("prepara.bat").decode("ascii")
+    assert "call curl -L -f" in t and "powershell -NoProfile" in t and "Net.WebClient" in t
+    assert "SecurityProtocol = 3072" in t                  # TLS 1.2 anche con PowerShell vecchio
+    assert 'verifica_pacchetto.bat" /prepara' in t
+
+
+@richiede_wine
+def test_wine_raccogli_prima_dell_installazione(tmp_path):
+    """Lanciato dalla cartella del progetto, senza programma installato: copia i log
+    dell'installazione che c'e' e lo dice."""
+    w, c = _cartella_progetto(tmp_path)
+    (c / "installa_log.txt").write_bytes(b"INSTALLAZIONE INTERROTTA\r\n")
+    t = _wine(str(w), 'cd /w/progetto && printf "\\r\\n" | /usr/lib/wine/wine64 cmd /c raccogli_risultati.bat '
+                      '2>/dev/null; echo "@@codice=$?"; ls -R "$HOME/Desktop/" 2>/dev/null || '
+                      'ls -R "$WINEPREFIX/drive_c/users/root/Desktop/"; ls -R /root/Desktop 2>/dev/null')
+    assert "Il programma non e' installato in C:\\denoising_live" in t, t
+    assert "copiato: installa_log.txt" in t and "FATTO: 1 elementi copiati." in t
+    assert re.search(r"Copia sulla chiavetta la cartella risultati_prova_\d{6}_\d{4} dal Desktop\.", t), t
+    assert "@@codice=0" in t
+
+
+def test_raccogli_copia_tutto_quello_che_serve():
+    t = _leggi("raccogli_risultati.bat").decode("ascii")
+    for f in ("report_diagnostica.txt", "rilevamento_pc.txt", "config.ini", "installa_log.txt", "python_msi_log.txt",
+              "dati_registrati", "\\log", "diagnostica_*.wcp", "diagnostica_*.csv", "cartella_installazione.txt"):
+        assert f in t, f
+    for r in t.lower().splitlines():               # nessun comando che cancella o sposta
+        r = r.strip()
+        if r.startswith("rem") or r.startswith("echo") or ">> " in r and " echo " in r:
+            continue
+        assert not re.search(r"(^|[&(]\s*|\bdo\s+|\)\s*)(del|erase|rd|rmdir|move)\s", r), r
+
+
+# ---------------------------------------------------------------- la guida rapida alla lettera (Wine a 32 bit)
 IMMAGINE_WINE32 = os.environ.get("DLIVE_WINE32_IMMAGINE", "dlive-wine32")
-SCRIPT_INSTALLA = r'''
-trap 'chmod -R a+rwX /w' EXIT
-cd "/w/cartella con spazi"
-wine reg add "HKCU\\Software\\Wine" /v Version /d winxp /f >/dev/null 2>&1
+SCRIPT_COLLEGA = r"""
 C="$WINEPREFIX/drive_c"
+P=/w/progetto
+wine reg add "HKCU\\Software\\Wine" /v Version /d win10 /f >/dev/null 2>&1
+echo "@@passo 2"
+cd $P && printf '\r\n' | wine cmd /c prepara.bat 2>/dev/null | tr -d '\r'; rm -f curl.bat
+wine reg add "HKCU\\Software\\Wine" /v Version /d winxp /f >/dev/null 2>&1
+echo "@@passo 2 su XP"
+printf '\r\n' | wine cmd /c prepara.bat 2>/dev/null | tr -d '\r'
 mkdir -p "$C/WinWCP" && touch "$C/WinWCP/WinWCP.exe" "$C/WinWCP/AxDD132x.dll" "$C/WinWCP/Axoutils32.dll"
 touch "$C/windows/system32/drivers/aspi32.sys"
-printf '\r\n\r\n\r\n' | xvfb-run -a wine cmd /c installa.bat 2>/dev/null | tr -d '\r' > /w/installa.txt || true
-cd "$C/denoising_live"
-printf '\r\n\r\n' | xvfb-run -a wine cmd /c diagnostica.bat --finto 2>/dev/null | tr -d '\r' > /w/diagnostica.txt || true
-tr -d '\r' < report_diagnostica.txt > /w/report.txt
-ls > /w/installati.txt
-'''
+cp -r $P "$C/denoising-live-main"
+echo "@@passo 7"
+cd "$C/denoising-live-main" && printf '\r\n\r\n' | xvfb-run -a wine cmd /c installa.bat 2>/dev/null | tr -d '\r'
+echo "@@icone"; ls "$C/users/root/Desktop/" /root/Desktop 2>/dev/null
+echo "@@passo 8"
+cd "$C/denoising_live" && printf 'S\r\n\r\n\r\n' | xvfb-run -a wine cmd /c diagnostica.bat --finto --finto-ingresso 4 2>/dev/null | tr -d '\r'
+echo "@@config"; grep canale_ingresso config.ini; ls config.ini.bak
+echo "@@passi 9-10"
+printf '\r\n' | xvfb-run -a wine cmd /c avvia.bat --finto --prova-gui 15 2>/dev/null | tr -d '\r'
+grep -h "Prova GUI completata\|ingresso AI" log/*.log
+echo "@@passo 12"
+printf '\r\n' | wine cmd /c raccogli_risultati.bat 2>/dev/null | tr -d '\r'
+echo "@@risultati"; cd "$C/users/root/Desktop"/risultati_prova_* && find . -type f | sort
+"""
 
 
 def _wine32_e_file_veri():
@@ -427,27 +608,53 @@ def _wine32_e_file_veri():
     return c
 
 
+def _parti(t):
+    return dict((p.split("\n", 1)[0].strip(), p.split("\n", 1)[1] if "\n" in p else "")
+                for p in t.split("@@")[1:])
+
+
 @pytest.mark.skipif(_wine32_e_file_veri() is None,
                     reason="servono l'immagine Docker %s (Wine a 32 bit) e i due file scaricati "
                            "(strumenti/prepara_pacchetto.py)" % IMMAGINE_WINE32)
-def test_wine32_installazione_completa_e_diagnostica(cartella_reale, tmp_path):
-    """installa.bat per intero con il vero MSI di Python 3.4.4 e la vera wheel di numpy,
-    poi diagnostica.bat con la DLL simulata, nel Python 3.4 a 32 bit installato."""
+def test_wine32_guida_rapida_alla_lettera(tmp_path):
+    """Il percorso della guida rapida, come lo farebbe il collega: prepara.bat (con
+    un curl simulato che 'scarica' il vero MSI e la vera wheel), copia in C:\\,
+    installa.bat (vero Python 3.4.4 a 32 bit), Diagnostica con la DLL simulata e il
+    segnale su un altro ingresso (risposta S), denoising_live (Digidata) con la DLL
+    simulata (anteprima, registrazione, marker), Raccogli risultati.  Le scritte che
+    la guida rapida dice di vedere devono comparire identiche."""
+    w, c = _cartella_progetto(tmp_path)
     for nome, *_ in pacchetto.SCARICAMENTI:
-        shutil.copy(os.path.join(_wine32_e_file_veri(), nome), str(cartella_reale))
-    w = str(cartella_reale.parent)
-    subprocess.run(["docker", "run", "--rm", "-v", "%s:/w" % w, IMMAGINE_WINE32, "bash", "-c", SCRIPT_INSTALLA],
-                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=900)
-    inst = open(os.path.join(w, "installa.txt")).read()
-    assert "Python OK: 3.4.4" in inst and "32 bit" in inst, inst
-    assert "Pacchetto completo e integro." in inst and "SHA-256 46c8f9f6" in inst
-    assert "numpy 1.15.4 OK" in inst
-    assert "Programma copiato in C:\\denoising_live" in inst
-    assert "WinWCP: C:\\WinWCP" in inst and "Axoutils32.dll: presente" in inst and "WinASPI: presente" in inst
-    assert "INSTALLAZIONE COMPLETATA." in inst and "INTERROTTA" not in inst
-    installati = open(os.path.join(w, "installati.txt")).read().split()
-    for f in ("main.py", "dlive", "config.ini", "diagnostica.bat", "GUIDA_LABORATORIO.txt", "rilevamento_pc.txt"):
-        assert f in installati, f
-    rep = open(os.path.join(w, "report.txt")).read()
-    assert "passo 7: Digidata trovato con <finta>" in rep
-    assert "passo 10: ricevuti 10000 campioni su 10000 attesi" in rep
+        shutil.copy(os.path.join(_wine32_e_file_veri(), nome), str(w / "scaricati"))
+    (c / "curl.bat").write_bytes(CURL_FINTO)
+    t = _wine(str(w), SCRIPT_COLLEGA, immagine=IMMAGINE_WINE32, timeout=1500)
+    p = _parti(t)
+    g = _leggi("GUIDA_RAPIDA.md").decode("utf-8")
+    # passo 2
+    assert "TUTTO A POSTO: copia questa cartella sulla chiavetta" in p["passo 2"], p["passo 2"]
+    assert "`TUTTO A POSTO: copia questa cartella sulla chiavetta`" in g
+    assert "prepara.bat va usato sul PC con internet" in p["passo 2 su XP"]
+    # passo 7
+    assert "INSTALLAZIONE COMPLETATA." in p["passo 7"] and "INTERROTTA" not in p["passo 7"], p["passo 7"]
+    assert "Python OK: 3.4.4" in p["passo 7"] and "numpy 1.15.4 OK" in p["passo 7"]
+    assert "`INSTALLAZIONE COMPLETATA`" in g
+    for icona in ("Diagnostica Digidata.lnk", "denoising_live (Digidata).lnk", "Raccogli risultati.lnk"):
+        assert icona in p["icone"], p["icone"]
+    # passo 8
+    assert "Il segnale arriva sull'ingresso AI4. Vuoi usarlo? (S/N)" in p["passo 8"], p["passo 8"]
+    assert "config.ini aggiornato: ora il programma usa l'ingresso AI4" in p["passo 8"]
+    assert "ESITO: nessun errore" in p["passo 8"]
+    assert "`Vuoi usarlo? (S/N)`" in g and "`ESITO: nessun errore`" in g
+    assert "canale_ingresso = 4" in p["config"] and "config.ini.bak" in p["config"]
+    # passi 9-10: il programma parte sull'ingresso scelto e registra
+    assert "Prova GUI completata: registrazione" in p["passi 9-10"] and "ingresso AI4" in p["passi 9-10"]
+    # passo 12
+    assert re.search(r"Copia sulla chiavetta la cartella risultati_prova_\d{6}_\d{4} dal Desktop\.", p["passo 12"])
+    assert "`Copia sulla chiavetta la cartella risultati_prova_...`" in g
+    ris = p["risultati"]
+    for f in ("report_diagnostica.txt", "rilevamento_pc.txt", "config.ini", "config.ini.bak", "installa_log.txt",
+              "python_msi_log.txt", "elenco.txt", "log/diagnostica.log"):
+        assert "./" + f in ris, (f, ris)
+    assert re.search(r"\./dati_registrati/\d{6}_001_raw\.wcp", ris) and re.search(r"_001_filt\.wcp", ris)
+    assert re.search(r"\./dati_registrati/\d{6}_001\.json", ris)
+    assert re.search(r"\./diagnostica_\d{6}_\d{6}\.wcp", ris) and re.search(r"\./diagnostica_\d{6}_\d{6}\.csv", ris)

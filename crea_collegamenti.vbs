@@ -8,7 +8,8 @@ dest = WScript.Arguments(0)
 desk = sh.SpecialFolders("Desktop")
 voci = Array("denoising_live (Digidata)", "avvia.bat", _
              "Diagnostica Digidata", "diagnostica.bat", _
-             "denoising_live (simulazione)", "avvia_simulazione.bat")
+             "denoising_live (simulazione)", "avvia_simulazione.bat", _
+             "Raccogli risultati", "raccogli_risultati.bat")
 For i = 0 To UBound(voci) Step 2
   p = desk & "\" & voci(i) & ".lnk"
   If LCase(dest) = "/rimuovi" Then

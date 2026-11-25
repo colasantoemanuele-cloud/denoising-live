@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Genera GUIDA_LABORATORIO.txt (ASCII, a capo CRLF, righe di al massimo 78
-caratteri: leggibile nel Blocco note di Windows XP) da GUIDA_LABORATORIO.md.
+"""Genera GUIDA_RAPIDA.txt e GUIDA_COMPLETA.txt (ASCII, a capo CRLF, righe di al
+massimo 78 caratteri: leggibili nel Blocco note di Windows XP) dai rispettivi .md.
 
     python strumenti/genera_guida_txt.py              rigenera
     python strumenti/genera_guida_txt.py --controlla  codice 1 se da rigenerare
@@ -106,23 +106,29 @@ def converti(md):
     return testo
 
 
+GUIDE = ("GUIDA_RAPIDA", "GUIDA_COMPLETA")
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     radice = argv[argv.index("--radice") + 1] if "--radice" in argv else RADICE
-    with io.open(os.path.join(radice, "GUIDA_LABORATORIO.md"), encoding="utf-8") as f:
-        testo = converti(f.read())
-    p = os.path.join(radice, "GUIDA_LABORATORIO.txt")
-    if "--controlla" in argv:
-        attuale = io.open(p, "rb").read().decode("ascii") if os.path.exists(p) else ""
-        if attuale != testo:
-            print("GUIDA_LABORATORIO.txt NON aggiornata: lanciare python strumenti/genera_guida_txt.py")
-            return 1
-        print("GUIDA_LABORATORIO.txt aggiornata")
-        return 0
-    with io.open(p, "wb") as f:
-        f.write(testo.encode("ascii"))
-    print("GUIDA_LABORATORIO.txt: %d righe" % testo.count("\r\n"))
-    return 0
+    codice = 0
+    for nome in GUIDE:
+        with io.open(os.path.join(radice, nome + ".md"), encoding="utf-8") as f:
+            testo = converti(f.read())
+        p = os.path.join(radice, nome + ".txt")
+        if "--controlla" in argv:
+            attuale = io.open(p, "rb").read().decode("ascii") if os.path.exists(p) else ""
+            if attuale != testo:
+                print("%s.txt NON aggiornata: lanciare python strumenti/genera_guida_txt.py" % nome)
+                codice = 1
+            else:
+                print("%s.txt aggiornata" % nome)
+            continue
+        with io.open(p, "wb") as f:
+            f.write(testo.encode("ascii"))
+        print("%s.txt: %d righe" % (nome, testo.count("\r\n")))
+    return codice
 
 
 if __name__ == "__main__":
